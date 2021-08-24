@@ -83,7 +83,7 @@ void loop()
 //  Serial.print(" | GyX = "); Serial.print(GyX);
 //  Serial.print(" | GyY = "); Serial.print(GyY);
 //  Serial.print(" | GyZ = "); Serial.println(GyZ);
-  delay(100);
+  delay(10);
 
 //  udp.broadcastTo(broadcastData, broadcastPort); //可以使用该方法广播信息
 

@@ -34,14 +34,14 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.timer.start(50)
         # wifi udp
         self.udp = udp()
-        self.wifi_IP_lineEdit.setText(self.udp.user_ip)
+        # self.wifi_IP_lineEdit.setText(self.udp.user_ip)
     def variable_init(self):
         # 图表数据变量
         self.wifi_recv_flag = 0
         self.udp_data = 0
         self.target_velocity = 0
         self.now_velocity = 0
-
+        self.close_flag = 1
     def plot_init(self):
         # 图表可视化数组
         self.v_list = []
@@ -60,6 +60,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
 
     def wifi_config_pushButton_clicked(self):
         try:
+            print(self.wifi_IP_lineEdit.text(),type(self.wifi_IP_lineEdit.text()))
             self.udp.udpClientSocket.bind((self.wifi_IP_lineEdit.text(), 2333))
             t1 = threading.Thread(target=self.udp_recv)
             t1.start()
@@ -75,7 +76,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.wifi_recv_flag = 0
             self.wifi_recv_open_pushButton.setText('打开')
     def udp_recv(self):
-        while self.wifi_recv_flag:
+        while self.close_flag:
             recv_data = self.udp.udpClientSocket.recv(1024)
             recv_data = recv_data.decode('utf-8')
             self.udp_data = recv_data
@@ -84,6 +85,9 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.v_list[0] = np.roll(self.v_list[0], -1)
             self.v_list[0][-1] = self.udp_data
             self.curve.setData(self.timeArray, self.v_list[0])  # 在绘图部件中绘制折线图
+
+    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+        self.close_flag = 0
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     myWin = MyWindow()
