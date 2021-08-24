@@ -9,8 +9,13 @@ class udp(object):
         self.ADDRESS = (self.HOST, self.PORT)
 
         self.udpClientSocket = socket(AF_INET, SOCK_DGRAM)
-        self.udpClientSocket.bind(("192.168.4.2",2333))
 
+        try:
+            s = socket(AF_INET, SOCK_DGRAM)
+            s.connect(('8.8.8.8', 80))
+            self.user_ip = s.getsockname()[0]
+        finally:
+            s.close()
     def send_message(self,data):
         if not data:
             return 0
