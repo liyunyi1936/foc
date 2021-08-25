@@ -12,13 +12,17 @@ Deng's FOC 闭环速度控制例程 测试库：SimpleFOC 2.1.1 测试硬件：�
 #include <Kalman.h> // Source: https://github.com/TKJElectronics/KalmanFilter
 Kalman kalmanZ;
 #define gyroZ_OFF -0.72
+#define swing_up_voltage 10 //V
+#define balance_voltage 10   //V
 /* ----IMU Data---- */
-float PID_P = 8; //
+float PID_P = 1; //
 float PID_I = 0; //
 float PID_D = 0; //
 double accX, accY, accZ;
 double gyroX, gyroY, gyroZ;
 int16_t tempRaw;
+bool stable = 0;
+uint32_t last_unstable_time;
 
 double gyroZangle; // Angle calculate using the gyro only
 double compAngleZ; // Calculated angle using a complementary filter
@@ -30,7 +34,7 @@ uint8_t i2cData[14]; // Buffer for I2C data
 
 // driver instance
 double acc2rotation(double x, double y);
-
+float constrainAngle(float x);
 const char *ssid = "esp32";
 const char *password = "12345678";
 
@@ -42,11 +46,16 @@ unsigned int broadcastPort = localUdpPort;
 MagneticSensorI2C sensor = MagneticSensorI2C(AS5600_I2C);
 
 TwoWire I2Ctwo = TwoWire(1);
-
+PIDController angle_pid = PIDController(PID_P, PID_I, PID_D, balance_voltage * 0.7, 20000);
+LowPassFilter lpf_throttle{0.00};
 //倒立摆参数
-float LQR_K1 = 200;  //摇摆到平衡
-float LQR_K2 = 15;   //
-float LQR_K3 = 0.15; //
+float LQR_K1 = 500;  //摇摆到平衡
+float LQR_K2 = 40;   //
+float LQR_K3 = 0.30; //
+
+float LQR_K1_1 = 200;   //平衡态
+float LQR_K2_1 = 15;   //
+float LQR_K3_1 = 0.15; //
 
 //电机参数
 BLDCMotor motor = BLDCMotor(5);
@@ -54,8 +63,9 @@ BLDCDriver3PWM driver = BLDCDriver3PWM(32, 33, 25, 22);
 
 
 //命令设置
-int target_velocity = 0;
-int target_angle = 149;
+double target_velocity = 0;
+double target_angle = 31;
+double target_voltage = 0;
 void onPacketCallBack(AsyncUDPPacket packet)
 {
   target_velocity = atoi((char*)(packet.data()));
@@ -63,11 +73,15 @@ void onPacketCallBack(AsyncUDPPacket packet)
   Serial.println(target_velocity);
 //  packet.print("reply data");
 }
-
+// instantiate the commander
+Commander command = Commander(Serial);
+void onp(char* cmd) { command.scalar(&PID_P, cmd); }
+void oni(char* cmd) { command.scalar(&PID_I, cmd); }
+void ond(char* cmd) { command.scalar(&PID_D, cmd); }
 void setup() {
    Serial.begin(115200);
 
-  
+
     // kalman mpu6050 init
   Wire.begin(19, 18,400000);// Set I2C frequency to 400kHz
   i2cData[0] = 7;    // Set the sample rate to 1000Hz - 8kHz/(7+1) = 1000Hz
@@ -130,11 +144,11 @@ void setup() {
   motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
 
   //运动控制模式设置
-  motor.controller = MotionControlType::velocity;
+  motor.controller = MotionControlType::torque;
 
-  //速度PI环设置
-  motor.PID_velocity.P = 1.5;
-  motor.PID_velocity.I = 20;
+//  //速度PI环设置
+//  motor.PID_velocity.P = 2;
+//  motor.PID_velocity.I = 20;
 
   //最大电机限制电机
   motor.voltage_limit = 12;
@@ -153,6 +167,9 @@ void setup() {
   //初始化 FOC
   motor.initFOC();
 
+      command.add('P', onp, "newKP");
+    command.add('I', oni, "newKI");
+    command.add('D', ond, "newKD");
   Serial.println(F("Motor ready."));
   Serial.println(F("Set the target velocity using serial terminal:"));
 
@@ -160,8 +177,12 @@ void setup() {
 }
 char s[255];
 int t_v;
-int lim_v = 20;
+int lim_v = 30;
+long loop_count = 0;
 void loop() {
+    motor.loopFOC();
+  if (loop_count++ == 10)
+  {
   while (i2cRead(0x3B, i2cData, 14));
     accX = (int16_t)((i2cData[0] << 8) | i2cData[1]);
     accY = (int16_t)((i2cData[2] << 8) | i2cData[3]);
@@ -186,24 +207,39 @@ void loop() {
       gyroZangle = kalAngleZ;
       
   sprintf(s, "%.2f",kalAngleZ); //将100转为16进制表示的字符串
-//  target_velocity = -angle_pid(kalAngleZ);
-//  if (abs(target_velocity)>lim_v)
-//    target_velocity = -target_velocity;
-//  if (target_velocity >lim_v)
-//    target_velocity = lim_v;
-//  if (target_velocity<-lim_v)
-//    target_velocity = -lim_v;
+  float pendulum_angle = constrainAngle((fmod(kalAngleZ * 3, 360.0) / 3.0 - target_angle) / 57.29578);
+   if (abs(pendulum_angle) < 0.6) // if angle small enough stabilize 0.5~30°,1.5~90°
+   {
+     target_voltage = controllerLQR(angle_pid(pendulum_angle), gyroZrate / 57.29578, motor.shaftVelocity());
+   }
+    else // else do swing-up
+    {    // sets 1.5V to the motor in order to swing up
+      target_voltage = -_sign(gyroZrate) * swing_up_voltage;
+    }
 
+    // set the target voltage to the motor
+    if (accZ < -13000 && ((accX * accX + accY * accY) > (14000 * 14000)))
+    {
+      motor.move(0);
+    }
+    else
+    {
+      motor.move(lpf_throttle(target_voltage));
+    }
   Serial.print(motor.shaft_velocity);Serial.print("\t");
-  Serial.print(target_velocity);Serial.print("\t");
+  Serial.print(target_voltage);Serial.print("\t");
   Serial.print(target_angle);Serial.print("\t");
-  Serial.print(kalAngleZ);Serial.print("\t");
+  Serial.print(pendulum_angle+target_angle);Serial.print("\t");
+  Serial.print(gyroZrate);Serial.print("\t");
   Serial.print("\r\n");
-  motor.loopFOC();
-  motor.move(target_velocity);
+  motor.move(lpf_throttle(target_voltage));
+//  motor.move(target_velocity);
   //可以使用该方法广播信息
   IPAddress broadcastAddr((~(uint32_t)WiFi.subnetMask())|((uint32_t)WiFi.localIP())); //计算广播地址
   udp.writeTo((const unsigned char*)s, strlen(s), broadcastAddr, localUdpPort); //广播数据
+  loop_count = 0;
+  }
+  command.run();
 }
 /* mpu6050加速度转换为角度
             acc2rotation(ax, ay)
@@ -223,25 +259,49 @@ double acc2rotation(double x, double y)
     return (atan(x / y) / 1.570796 * 90);
   }
 }
-
-unsigned long lastTime;
-double errSum, lastErr;
-int angle_pid(double now_angle)
+// function constraining the angle in between -pi and pi, in degrees -180 and 180
+float constrainAngle(float x)
 {
-   /*How long since we last calculated*/
-   unsigned long now = millis();
-   double timeChange = (double)(now - lastTime);
-  
-   /*Compute all the working error variables*/
-   double error = target_angle-now_angle;
-   errSum += (error * timeChange);
-   double dErr = (error - lastErr) / timeChange;
-  
-   /*Compute PID Output*/
-   int Output = PID_P * error + PID_I * errSum + PID_D * dErr;
-  
-   /*Remember some variables for next time*/
-   lastErr = error;
-   lastTime = now;
-   return Output;
+  x = fmod(x + M_PI, _2PI);
+  if (x < 0)
+    x += _2PI;
+  return x - M_PI;
+}
+// LQR stabilization controller functions
+// calculating the voltage that needs to be set to the motor in order to stabilize the pendulum
+float controllerLQR(float p_angle, float p_vel, float m_vel)
+{
+  // if angle controllable
+  // calculate the control law
+  // LQR controller u = k*x
+  //  - k = [40, 7, 0.3]
+  //  - k = [13.3, 21, 0.3]
+  //  - x = [pendulum angle, pendulum velocity, motor velocity]'
+  if (abs(p_angle) > 0.05)
+  {
+    last_unstable_time = millis();
+    stable = 0;
+  }
+  if ((millis() - last_unstable_time) > 1000)
+  {
+    stable = 1;
+  }
+
+  //Serial.println(stable);
+  float u;
+  if (!stable)
+  {
+    u = LQR_K1 * p_angle + LQR_K2 * p_vel + LQR_K3 * m_vel;
+  }
+  else
+  {
+    //u = LQR_K1 * p_angle + LQR_K2 * p_vel + LQR_K3 * m_vel;
+    u = LQR_K1_1 * p_angle + LQR_K2_1 * p_vel + LQR_K3_1 * m_vel;
+  }
+
+  // limit the voltage set to the motor
+  if (abs(u) > motor.voltage_limit * 0.7)
+    u = _sign(u) * motor.voltage_limit * 0.7;
+
+  return u;
 }
