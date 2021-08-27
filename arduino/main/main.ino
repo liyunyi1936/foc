@@ -12,12 +12,10 @@ Deng's FOC 闭环速度控制例程 测试库：SimpleFOC 2.1.1 测试硬件：�
 #include <Kalman.h> // Source: https://github.com/TKJElectronics/KalmanFilter
 Kalman kalmanZ;
 #define gyroZ_OFF -0.72
-#define swing_up_voltage 10 //V
+#define swing_up_voltage 5 //V
 #define balance_voltage 10   //V
 /* ----IMU Data---- */
-float PID_P = 1; //
-float PID_I = 0; //
-float PID_D = 0; //
+
 double accX, accY, accZ;
 double gyroX, gyroY, gyroZ;
 int16_t tempRaw;
@@ -44,12 +42,15 @@ unsigned int localUdpPort = 2333; //本地端口号
 unsigned int broadcastPort = localUdpPort;
 
 MagneticSensorI2C sensor = MagneticSensorI2C(AS5600_I2C);
-
+float PID_P = 1; //
+float PID_I = 0; //
+float PID_D = 0; //
 TwoWire I2Ctwo = TwoWire(1);
 PIDController angle_pid = PIDController(PID_P, PID_I, PID_D, balance_voltage * 0.7, 20000);
 LowPassFilter lpf_throttle{0.00};
+#define FLAG_V 1
 //倒立摆参数
-float LQR_K1 = 500;  //摇摆到平衡
+float LQR_K1 = 600;  //摇摆到平衡
 float LQR_K2 = 40;   //
 float LQR_K3 = 0.30; //
 
@@ -144,11 +145,15 @@ void setup() {
   motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
 
   //运动控制模式设置
+#if FLAG_V
   motor.controller = MotionControlType::torque;
+#else
+  motor.controller = MotionControlType::velocity;
+    //速度PI环设置
+  motor.PID_velocity.P = 20;
+  motor.PID_velocity.I = 20;
+#endif
 
-//  //速度PI环设置
-//  motor.PID_velocity.P = 2;
-//  motor.PID_velocity.I = 20;
 
   //最大电机限制电机
   motor.voltage_limit = 12;
@@ -177,11 +182,11 @@ void setup() {
 }
 char s[255];
 int t_v;
-int lim_v = 30;
+int lim_v = 60;
 long loop_count = 0;
 void loop() {
     motor.loopFOC();
-  if (loop_count++ == 10)
+  if (loop_count++ == 5)
   {
   while (i2cRead(0x3B, i2cData, 14));
     accX = (int16_t)((i2cData[0] << 8) | i2cData[1]);
@@ -208,9 +213,13 @@ void loop() {
       
   sprintf(s, "%.2f",kalAngleZ); //将100转为16进制表示的字符串
   float pendulum_angle = constrainAngle((fmod(kalAngleZ * 3, 360.0) / 3.0 - target_angle) / 57.29578);
-   if (abs(pendulum_angle) < 0.6) // if angle small enough stabilize 0.5~30°,1.5~90°
+#if FLAG_V
+   if (abs(pendulum_angle) < 0.3) // if angle small enough stabilize 0.5~30°,1.5~90°
    {
      target_voltage = controllerLQR(angle_pid(pendulum_angle), gyroZrate / 57.29578, motor.shaftVelocity());
+//        limit the voltage set to the motor
+    if (abs(target_voltage) > motor.voltage_limit * 0.9)
+      target_voltage = _sign(target_voltage) * motor.voltage_limit * 0.9;
    }
     else // else do swing-up
     {    // sets 1.5V to the motor in order to swing up
@@ -226,13 +235,38 @@ void loop() {
     {
       motor.move(lpf_throttle(target_voltage));
     }
+     Serial.print(target_voltage);Serial.print("\t");
+#else
+    if (abs(pendulum_angle) < 0.6) // if angle small enough stabilize 0.5~30°,1.5~90°
+   {
+     target_velocity = controllerLQR(angle_pid(pendulum_angle), gyroZrate / 57.29578, motor.shaftVelocity());
+     //        limit the voltage set to the motor
+    if (abs(target_velocity) > lim_v)
+      target_velocity = _sign(target_velocity) * lim_v;
+   }
+    else // else do swing-up
+    {    // sets 1.5V to the motor in order to swing up
+      target_velocity = -_sign(gyroZrate) * 30;
+    }
+
+    // set the target voltage to the motor
+    if (accZ < -13000 && ((accX * accX + accY * accY) > (14000 * 14000)))
+    {
+      motor.move(0);
+    }
+    else
+    {
+      motor.move(lpf_throttle(target_velocity));
+    }
+      Serial.print(target_velocity);Serial.print("\t");
+#endif
+#if 1
   Serial.print(motor.shaft_velocity);Serial.print("\t");
-  Serial.print(target_voltage);Serial.print("\t");
   Serial.print(target_angle);Serial.print("\t");
   Serial.print(pendulum_angle+target_angle);Serial.print("\t");
   Serial.print(gyroZrate);Serial.print("\t");
   Serial.print("\r\n");
-  motor.move(lpf_throttle(target_voltage));
+#endif
 //  motor.move(target_velocity);
   //可以使用该方法广播信息
   IPAddress broadcastAddr((~(uint32_t)WiFi.subnetMask())|((uint32_t)WiFi.localIP())); //计算广播地址
@@ -299,9 +333,6 @@ float controllerLQR(float p_angle, float p_vel, float m_vel)
     u = LQR_K1_1 * p_angle + LQR_K2_1 * p_vel + LQR_K3_1 * m_vel;
   }
 
-  // limit the voltage set to the motor
-  if (abs(u) > motor.voltage_limit * 0.7)
-    u = _sign(u) * motor.voltage_limit * 0.7;
 
   return u;
 }
