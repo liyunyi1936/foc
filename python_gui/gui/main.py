@@ -105,18 +105,23 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         while self.close_flag:
             recv_data = self.udp.udpClientSocket.recv(1024)
             recv_data = recv_data.decode('utf-8')
-            self.udp_data = recv_data
+            recv_data = recv_data[:-1]
+            self.udp_data = recv_data.split(',')
+            """处理接受的信息"""
+            print(len(self.udp_data))
+            for i, data in enumerate(self.udp_data):
+                # print(i,data)
+
+                # self.signalDataArrays[i] = np.roll(self.signalDataArrays[i], -1)
+                # self.signalDataArrays[i][-1] = data
+                pass
     def update_plot(self):
-        if self.wifi_recv_flag:
-            self.signalDataArrays[0] = np.roll(self.signalDataArrays[0], -1)
-            self.signalDataArrays[0][-1] = self.udp_data
-            self.signalDataArrays[1] = np.roll(self.signalDataArrays[1], -1)
-            self.signalDataArrays[1][-1] = self.angle_lineEdit.text()
-            # self.curve.setData(self.timeArray, self.v_list[0])  # 在绘图部件中绘制折线图
-            for i, plotFlag in enumerate(self.signalPlotFlags):
-                self.signalPlots[i].setData(self.timeArray, self.signalDataArrays[i])
-                self.signalPlots[i].updateItems()
-                self.signalPlots[i].sigPlotChanged.emit(self.signalPlots[i])
+        pass
+        # if self.wifi_recv_flag:
+        #     for i, plotFlag in enumerate(self.signalPlotFlags):
+        #         self.signalPlots[i].setData(self.timeArray, self.signalDataArrays[i])
+        #         self.signalPlots[i].updateItems()
+        #         self.signalPlots[i].sigPlotChanged.emit(self.signalPlots[i])
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         self.close_flag = 0

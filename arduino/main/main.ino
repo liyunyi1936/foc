@@ -36,10 +36,11 @@ float constrainAngle(float x);
 const char *ssid = "esp32";
 const char *password = "12345678";
 
-
+#define WIFI_FLAG 1
 AsyncUDP udp;                     //创建UDP对象
 unsigned int localUdpPort = 2333; //本地端口号
 unsigned int broadcastPort = localUdpPort;
+void wifi_print(char * s,double num);
 
 MagneticSensorI2C sensor = MagneticSensorI2C(AS5600_I2C);
 float PID_P = 1; //
@@ -50,7 +51,7 @@ PIDController angle_pid = PIDController(PID_P, PID_I, PID_D, balance_voltage * 0
 LowPassFilter lpf_throttle{0.00};
 #define FLAG_V 1
 //倒立摆参数
-float LQR_K1 = 600;  //摇摆到平衡
+float LQR_K1 = 400;  //摇摆到平衡
 float LQR_K2 = 40;   //
 float LQR_K3 = 0.30; //
 
@@ -65,7 +66,7 @@ BLDCDriver3PWM driver = BLDCDriver3PWM(32, 33, 25, 22);
 
 //命令设置
 double target_velocity = 0;
-double target_angle = 31;
+double target_angle = 88;
 double target_voltage = 0;
 void onPacketCallBack(AsyncUDPPacket packet)
 {
@@ -75,10 +76,6 @@ void onPacketCallBack(AsyncUDPPacket packet)
 //  packet.print("reply data");
 }
 // instantiate the commander
-Commander command = Commander(Serial);
-void onp(char* cmd) { command.scalar(&PID_P, cmd); }
-void oni(char* cmd) { command.scalar(&PID_I, cmd); }
-void ond(char* cmd) { command.scalar(&PID_D, cmd); }
 void setup() {
    Serial.begin(115200);
 
@@ -172,21 +169,18 @@ void setup() {
   //初始化 FOC
   motor.initFOC();
 
-      command.add('P', onp, "newKP");
-    command.add('I', oni, "newKI");
-    command.add('D', ond, "newKD");
   Serial.println(F("Motor ready."));
   Serial.println(F("Set the target velocity using serial terminal:"));
 
 
 }
-char s[255];
+char buf[255];
 int t_v;
 int lim_v = 60;
 long loop_count = 0;
 void loop() {
     motor.loopFOC();
-  if (loop_count++ == 5)
+  if (1)
   {
   while (i2cRead(0x3B, i2cData, 14));
     accX = (int16_t)((i2cData[0] << 8) | i2cData[1]);
@@ -211,19 +205,25 @@ void loop() {
     if (gyroZangle < -180 || gyroZangle > 180)
       gyroZangle = kalAngleZ;
       
-  sprintf(s, "%.2f",kalAngleZ); //将100转为16进制表示的字符串
+
   float pendulum_angle = constrainAngle((fmod(kalAngleZ * 3, 360.0) / 3.0 - target_angle) / 57.29578);
 #if FLAG_V
-   if (abs(pendulum_angle) < 0.3) // if angle small enough stabilize 0.5~30°,1.5~90°
+   if (abs(pendulum_angle) < 0.6) // if angle small enough stabilize 0.5~30°,1.5~90°
    {
      target_voltage = controllerLQR(angle_pid(pendulum_angle), gyroZrate / 57.29578, motor.shaftVelocity());
 //        limit the voltage set to the motor
-    if (abs(target_voltage) > motor.voltage_limit * 0.9)
-      target_voltage = _sign(target_voltage) * motor.voltage_limit * 0.9;
+    if (abs(target_voltage) > motor.voltage_limit * 0.7)
+      target_voltage = _sign(target_voltage) * motor.voltage_limit * 0.7;
    }
     else // else do swing-up
     {    // sets 1.5V to the motor in order to swing up
-      target_voltage = -_sign(gyroZrate) * swing_up_voltage;
+      if(loop_count == 0)
+      {
+        loop_count = 30;
+        target_voltage = -_sign(gyroZrate) * 3;
+      }
+      else
+        loop_count--;
     }
 
     // set the target voltage to the motor
@@ -235,7 +235,7 @@ void loop() {
     {
       motor.move(lpf_throttle(target_voltage));
     }
-     Serial.print(target_voltage);Serial.print("\t");
+
 #else
     if (abs(pendulum_angle) < 0.6) // if angle small enough stabilize 0.5~30°,1.5~90°
    {
@@ -258,9 +258,11 @@ void loop() {
     {
       motor.move(lpf_throttle(target_velocity));
     }
-      Serial.print(target_velocity);Serial.print("\t");
+      
 #endif
-#if 1
+#if 0
+  Serial.print(target_voltage);Serial.print("\t");
+  Serial.print(target_velocity);Serial.print("\t");
   Serial.print(motor.shaft_velocity);Serial.print("\t");
   Serial.print(target_angle);Serial.print("\t");
   Serial.print(pendulum_angle+target_angle);Serial.print("\t");
@@ -269,11 +271,17 @@ void loop() {
 #endif
 //  motor.move(target_velocity);
   //可以使用该方法广播信息
+#if WIFI_FLAG
+
+  memset(buf, 0, strlen(buf));  
+  wifi_print("p",pendulum_angle+target_angle);
+  wifi_print("t",target_angle);
+  wifi_print("k",kalAngleZ);
+  wifi_print("g",gyroZrate);
   IPAddress broadcastAddr((~(uint32_t)WiFi.subnetMask())|((uint32_t)WiFi.localIP())); //计算广播地址
-  udp.writeTo((const unsigned char*)s, strlen(s), broadcastAddr, localUdpPort); //广播数据
-  loop_count = 0;
+  udp.writeTo((const unsigned char*)buf, strlen(buf), broadcastAddr, localUdpPort); //广播数据
   }
-  command.run();
+#endif
 }
 /* mpu6050加速度转换为角度
             acc2rotation(ax, ay)
@@ -335,4 +343,14 @@ float controllerLQR(float p_angle, float p_vel, float m_vel)
 
 
   return u;
+}
+void wifi_print(char * s,double num)
+{
+  char str[255];
+  char n[255];
+  sprintf(n, "%.2f",num);
+  strcpy(str,s);
+  strcat(str, n);
+  strcat(buf+strlen(buf), str);
+  strcat(buf, ",");
 }
