@@ -5,7 +5,7 @@ from wifi_udp import *
 import threading    #引入并行
 import numpy as np
 import pyqtgraph as pg
-
+import re
 
 RED_COLOR = (255, 92, 92)
 GREEN_COLOR = (57, 217, 138)
@@ -25,8 +25,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.CreateItems()
         # 设置信号与槽
         self.CreateSignalSlot()
-        # 图表初始化
-        self.plot_init()
+
 
     # 设置信号与槽
     def CreateSignalSlot(self):
@@ -50,21 +49,21 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.target_velocity = 0
         self.now_velocity = 0
         self.close_flag = 1
+        self.re_item = []
     def plot_init(self):
         # 绘图对象
         self.plotWidget = pg.PlotWidget()
         self.plotWidget.showGrid(x=True, y=True, alpha=0.5)
         # 图表可视化数组
-        self.signals = ['now_Angle', 'tag_Angle']
-        self.signal_tooltip = ['now_Angle ', 'tag_Angle']
-        self.signalColors = [RED_COLOR, BLUE_COLOR]
-        self.signalIcons = ['reddot', 'bluedot']
+        signalColors = [RED_COLOR, BLUE_COLOR, PURPLE_COLOR, YELLOW_COLOR,
+                        MAROON_COLOR, ORANGE_COLOR, GREEN_COLOR]
+        signalIcons = ['reddot', 'bluedot', 'purpledot', 'yellowdot', 'maroondot', 'orangedot', 'greendot']
         self.numberOfSamples = 300
         self.signalDataArrays = []
         self.signalPlots = []
         self.signalPlotFlags = []
         self.timeArray = np.arange(-self.numberOfSamples, 0, 1)
-        for (sig, sigColor, tooltip) in zip(self.signals, self.signalColors, self.signal_tooltip):
+        for (sig, sigColor, tooltip) in zip(self.re_item, signalColors, self.re_item):
             # define signal plot data array
             self.signalDataArrays.append(np.zeros(self.numberOfSamples))
             # configure signal plot parameters
@@ -88,6 +87,17 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         try:
             print(self.wifi_IP_lineEdit.text(),type(self.wifi_IP_lineEdit.text()))
             self.udp.udpClientSocket.bind((self.wifi_IP_lineEdit.text(), 2333))
+            # 第一次接受数据，用于判断项目数，
+            recv_data = self.udp.udpClientSocket.recv(1024)
+            recv_data = recv_data.decode('utf-8')
+            recv_data = recv_data[:-1]
+            recv_data = recv_data.split(',')
+            """处理接受的信息"""
+            for i, data in enumerate(recv_data):
+                self.re_item.append(''.join(re.split(r'[^A-Za-z]', data)))
+            print(self.re_item)
+            # 图表初始化
+            self.plot_init()
             t1 = threading.Thread(target=self.udp_recv)
             t1.start()
             self.wifi_recv_open_pushButton.setEnabled(True)
@@ -106,22 +116,23 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             recv_data = self.udp.udpClientSocket.recv(1024)
             recv_data = recv_data.decode('utf-8')
             recv_data = recv_data[:-1]
-            self.udp_data = recv_data.split(',')
+            recv_data = recv_data.split(',')
             """处理接受的信息"""
-            print(len(self.udp_data))
-            for i, data in enumerate(self.udp_data):
+            print(recv_data)
+            for i, data in enumerate(recv_data):
+                self.re_item.append(''.join(re.split(r'[^A-Za-z]', data)))
+                data = re.findall(r"\d+\.?\d*", data)
                 # print(i,data)
 
-                # self.signalDataArrays[i] = np.roll(self.signalDataArrays[i], -1)
-                # self.signalDataArrays[i][-1] = data
+                self.signalDataArrays[i] = np.roll(self.signalDataArrays[i], -1)
+                self.signalDataArrays[i][-1] = data[0]
                 pass
     def update_plot(self):
-        pass
-        # if self.wifi_recv_flag:
-        #     for i, plotFlag in enumerate(self.signalPlotFlags):
-        #         self.signalPlots[i].setData(self.timeArray, self.signalDataArrays[i])
-        #         self.signalPlots[i].updateItems()
-        #         self.signalPlots[i].sigPlotChanged.emit(self.signalPlots[i])
+        if self.wifi_recv_flag:
+            for i, plotFlag in enumerate(self.signalPlotFlags):
+                self.signalPlots[i].setData(self.timeArray, self.signalDataArrays[i])
+                self.signalPlots[i].updateItems()
+                self.signalPlots[i].sigPlotChanged.emit(self.signalPlots[i])
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         self.close_flag = 0

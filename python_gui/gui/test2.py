@@ -1,9 +1,5 @@
-import socket
-
-try:
-    s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-    s.connect(('8.8.8.8',80))
-    ip = s.getsockname()[0]
-finally:
-    s.close()
-print(ip)
+a = [1,2]
+b = [4,5,6,4]
+c = [7,8,9,10]
+for i,j,k in zip(a,b,c):
+    print(i,j,k)

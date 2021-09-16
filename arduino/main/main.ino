@@ -260,7 +260,7 @@ void loop() {
     }
       
 #endif
-#if 0
+#if 1
   Serial.print(target_voltage);Serial.print("\t");
   Serial.print(target_velocity);Serial.print("\t");
   Serial.print(motor.shaft_velocity);Serial.print("\t");
