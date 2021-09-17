@@ -48,8 +48,10 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.re_item = []
     def plot_init(self):
         # 绘图对象
+        pg.setConfigOptions(antialias=True)
         self.plotWidget = pg.PlotWidget()
         self.plotWidget.showGrid(x=True, y=True, alpha=0.5)
+        self.plotWidget.addLegend()
         self.controlPlotWidget = ControlPlotPanel(controllerPlotWidget=self)
         # 图表可视化数组
         self.numberOfSamples = 300

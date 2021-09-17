@@ -67,7 +67,6 @@ class GUIToolKit(object):
         }
         currentDir = os.path.dirname(__file__)
         icon_path = os.path.join(currentDir, './resources', file_index[icoName])
-        print(icon_path)
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(icon_path), QtGui.QIcon.Normal,
                       QtGui.QIcon.Off)
