@@ -6,16 +6,13 @@ import threading    #引入并行
 import numpy as np
 import pyqtgraph as pg
 import re
-
-RED_COLOR = (255, 92, 92)
-GREEN_COLOR = (57, 217, 138)
-BLUE_COLOR = (91, 141, 236)
-ORANGE_COLOR = (253, 172, 66)
-YELLOW_COLOR = (255,255,51)
-PURPLE_COLOR = (75,0,130)
-MAROON_COLOR = (222,184,135)
+from sharedcomponets import GUIToolKit
 
 class MyWindow(QMainWindow, Ui_MainWindow):
+    signalColors = [GUIToolKit.RED_COLOR, GUIToolKit.BLUE_COLOR, GUIToolKit.PURPLE_COLOR, GUIToolKit.YELLOW_COLOR,
+                    GUIToolKit.MAROON_COLOR, GUIToolKit.ORANGE_COLOR, GUIToolKit.GREEN_COLOR]
+    signalIcons = ['reddot', 'bluedot', 'purpledot', 'yellowdot', 'maroondot', 'orangedot', 'greendot']
+
     def __init__(self, parent=None):
         super(MyWindow, self).__init__(parent)
         self.setupUi(self)
@@ -29,7 +26,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
 
     # 设置信号与槽
     def CreateSignalSlot(self):
-        self.wifi_recv_open_pushButton.clicked.connect(self.wifi_recv_open_pushButton_clicked)
         self.velocity_horizontalSlider.valueChanged.connect(self.velocity_horizontalSlider_valueChanged)
         self.wifi_config_pushButton.clicked.connect(self.wifi_config_pushButton_clicked)
 
@@ -54,16 +50,14 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         # 绘图对象
         self.plotWidget = pg.PlotWidget()
         self.plotWidget.showGrid(x=True, y=True, alpha=0.5)
+        self.controlPlotWidget = ControlPlotPanel(controllerPlotWidget=self)
         # 图表可视化数组
-        signalColors = [RED_COLOR, BLUE_COLOR, PURPLE_COLOR, YELLOW_COLOR,
-                        MAROON_COLOR, ORANGE_COLOR, GREEN_COLOR]
-        signalIcons = ['reddot', 'bluedot', 'purpledot', 'yellowdot', 'maroondot', 'orangedot', 'greendot']
         self.numberOfSamples = 300
         self.signalDataArrays = []
         self.signalPlots = []
         self.signalPlotFlags = []
         self.timeArray = np.arange(-self.numberOfSamples, 0, 1)
-        for (sig, sigColor, tooltip) in zip(self.re_item, signalColors, self.re_item):
+        for (sig, sigColor, checkBox,tooltip) in zip(self.re_item, self.signalColors, self.controlPlotWidget.signalCheckBox,self.re_item):
             # define signal plot data array
             self.signalDataArrays.append(np.zeros(self.numberOfSamples))
             # configure signal plot parameters
@@ -76,7 +70,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.signalPlotFlags.append(True)
 
         self.gridLayout.addWidget(self.plotWidget)
-
+        self.tool_layout.addWidget(self.controlPlotWidget)
     # 滑条绑定
     def velocity_horizontalSlider_valueChanged(self):
         self.target_velocity = self.velocity_horizontalSlider.value()
@@ -85,32 +79,27 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         print(str(self.target_velocity))
     def wifi_config_pushButton_clicked(self):
         try:
-            print(self.wifi_IP_lineEdit.text(),type(self.wifi_IP_lineEdit.text()))
-            self.udp.udpClientSocket.bind((self.wifi_IP_lineEdit.text(), 2333))
-            # 第一次接受数据，用于判断项目数，
-            recv_data = self.udp.udpClientSocket.recv(1024)
-            recv_data = recv_data.decode('utf-8')
-            recv_data = recv_data[:-1]
-            recv_data = recv_data.split(',')
-            """处理接受的信息"""
-            for i, data in enumerate(recv_data):
-                self.re_item.append(''.join(re.split(r'[^A-Za-z]', data)))
-            print(self.re_item)
-            # 图表初始化
+            self.re_item = ['k','g','l','t']
             self.plot_init()
-            t1 = threading.Thread(target=self.udp_recv)
-            t1.start()
-            self.wifi_recv_open_pushButton.setEnabled(True)
-        except:
+            # print(self.wifi_IP_lineEdit.text(),type(self.wifi_IP_lineEdit.text()))
+            # self.udp.udpClientSocket.bind((self.wifi_IP_lineEdit.text(), 2333))
+            # # 第一次接受数据，用于判断项目数，
+            # recv_data = self.udp.udpClientSocket.recv(1024)
+            # recv_data = recv_data.decode('utf-8')
+            # recv_data = recv_data[:-1]
+            # recv_data = recv_data.split(',')
+            # """处理接受的信息"""
+            # for i, data in enumerate(recv_data):
+            #     self.re_item.append(''.join(re.split(r'[^A-Za-z]', data)))
+            # print(self.re_item)
+            # # 图表初始化
+            # self.plot_init()
+            # t1 = threading.Thread(target=self.udp_recv)
+            # t1.start()
+            # self.wifi_recv_open_pushButton.setEnabled(True)
+        except Exception as e:
+            print(e)
             QMessageBox.critical(self, "错误", '该请求的地址无效')
-    def wifi_recv_open_pushButton_clicked(self):
-        if self.wifi_recv_flag == 0:
-            # 打开wifi接收
-            self.wifi_recv_flag = 1
-            self.wifi_recv_open_pushButton.setText('关闭')
-        else:
-            self.wifi_recv_flag = 0
-            self.wifi_recv_open_pushButton.setText('打开')
     def udp_recv(self):
         while self.close_flag:
             recv_data = self.udp.udpClientSocket.recv(1024)
@@ -136,6 +125,53 @@ class MyWindow(QMainWindow, Ui_MainWindow):
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         self.close_flag = 0
+
+
+class ControlPlotPanel(QtWidgets.QWidget):
+
+    def __init__(self, parent=None, controllerPlotWidget=None):
+        '''Constructor for ToolsWidget'''
+        super().__init__(parent)
+        self.controlledPlot = controllerPlotWidget
+
+        self.horizontalLayout1 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout1.setObjectName('horizontalLayout')
+        self.setLayout(self.horizontalLayout1)
+
+        self.startStopButton = QtWidgets.QPushButton(self)
+        self.startStopButton.setText('Start')
+        self.startStopButton.setObjectName('Start')
+        self.startStopButton.clicked.connect(self.wifi_recv_open_pushButton_clicked)
+        self.startStopButton.setIcon(GUIToolKit.getIconByName('start'))
+        self.horizontalLayout1.addWidget(self.startStopButton)
+
+        self.zoomAllButton = QtWidgets.QPushButton(self)
+        self.zoomAllButton.setObjectName('zoomAllButton')
+        self.zoomAllButton.setText('View all')
+        self.zoomAllButton.setIcon(GUIToolKit.getIconByName('zoomall'))
+        self.zoomAllButton.clicked.connect(self.zoomAllPlot)
+        self.horizontalLayout1.addWidget(self.zoomAllButton)
+
+        self.signalCheckBox = []
+        for i in range(len(self.controlledPlot.re_item)):
+            checkBox = QtWidgets.QCheckBox(self)
+            checkBox.setObjectName('signalCheckBox' + str(i))
+            checkBox.setToolTip(self.controlledPlot.re_item[i])
+            checkBox.setText(self.controlledPlot.re_item[i])
+            checkBox.setIcon(GUIToolKit.getIconByName(self.controlledPlot.signalIcons[i]))
+            checkBox.setChecked(True)
+            self.signalCheckBox.append(checkBox)
+            self.horizontalLayout1.addWidget(checkBox)
+    def zoomAllPlot(self):
+        self.controlledPlot.plotWidget.enableAutoRange()
+    def wifi_recv_open_pushButton_clicked(self):
+        if self.controlledPlot.wifi_recv_flag == 0:
+            # 打开wifi接收
+            self.controlledPlot.wifi_recv_flag = 1
+            self.startStopButton.setText('Stop')
+        else:
+            self.controlledPlot.wifi_recv_flag = 0
+            self.startStopButton.setText('Start')
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     myWin = MyWindow()
