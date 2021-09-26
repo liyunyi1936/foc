@@ -81,24 +81,25 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         print(str(self.target_velocity))
     def wifi_config_pushButton_clicked(self):
         try:
-            self.re_item = ['k','g','l','t']
-            self.plot_init()
-            # print(self.wifi_IP_lineEdit.text(),type(self.wifi_IP_lineEdit.text()))
-            # self.udp.udpClientSocket.bind((self.wifi_IP_lineEdit.text(), 2333))
-            # # 第一次接受数据，用于判断项目数，
-            # recv_data = self.udp.udpClientSocket.recv(1024)
-            # recv_data = recv_data.decode('utf-8')
-            # recv_data = recv_data[:-1]
-            # recv_data = recv_data.split(',')
-            # """处理接受的信息"""
-            # for i, data in enumerate(recv_data):
-            #     self.re_item.append(''.join(re.split(r'[^A-Za-z]', data)))
-            # print(self.re_item)
-            # # 图表初始化
+            # self.re_item = ['k','g','l','t']
             # self.plot_init()
-            # t1 = threading.Thread(target=self.udp_recv)
-            # t1.start()
-            # self.wifi_recv_open_pushButton.setEnabled(True)
+
+            print(self.wifi_IP_lineEdit.text(),type(self.wifi_IP_lineEdit.text()))
+            self.udp.udpClientSocket.bind((self.wifi_IP_lineEdit.text(), 2333))
+            # 第一次接受数据，用于判断项目数，
+            self.udp.send_message("s")
+            recv_data = self.udp.udpClientSocket.recv(1024)
+            recv_data = recv_data.decode('utf-8')
+            recv_data = recv_data[:-1]
+            recv_data = recv_data.split(',')
+            """处理接受的信息"""
+            for i, data in enumerate(recv_data):
+                self.re_item.append(''.join(re.split(r'[^A-Za-z]', data)))
+            print(self.re_item)
+            # 图表初始化
+            self.plot_init()
+            t1 = threading.Thread(target=self.udp_recv)
+            t1.start()
         except Exception as e:
             print(e)
             QMessageBox.critical(self, "错误", '该请求的地址无效')
@@ -109,7 +110,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             recv_data = recv_data[:-1]
             recv_data = recv_data.split(',')
             """处理接受的信息"""
-            print(recv_data)
+            # print(recv_data)
             for i, data in enumerate(recv_data):
                 self.re_item.append(''.join(re.split(r'[^A-Za-z]', data)))
                 data = re.findall(r"\d+\.?\d*", data)

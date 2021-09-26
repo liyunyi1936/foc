@@ -11,7 +11,7 @@ Deng's FOC 闭环速度控制例程 测试库：SimpleFOC 2.1.1 测试硬件：�
 #include <AsyncUDP.h> //引用以使用异步UDP
 #include <Kalman.h> // Source: https://github.com/TKJElectronics/KalmanFilter
 Kalman kalmanZ;
-#define gyroZ_OFF -0.72
+#define gyroZ_OFF -0.52
 #define swing_up_voltage 5 //V
 #define balance_voltage 10   //V
 /* ----IMU Data---- */
@@ -36,10 +36,9 @@ float constrainAngle(float x);
 const char *ssid = "esp32";
 const char *password = "12345678";
 
-#define WIFI_FLAG 1
+bool wifi_flag = 0;
 AsyncUDP udp;                     //创建UDP对象
 unsigned int localUdpPort = 2333; //本地端口号
-unsigned int broadcastPort = localUdpPort;
 void wifi_print(char * s,double num);
 
 MagneticSensorI2C sensor = MagneticSensorI2C(AS5600_I2C);
@@ -52,12 +51,13 @@ LowPassFilter lpf_throttle{0.00};
 #define FLAG_V 1
 //倒立摆参数
 float LQR_K1 = 400;  //摇摆到平衡
-float LQR_K2 = 40;   //
-float LQR_K3 = 0.30; //
+float LQR_K2 = 80;   //
+float LQR_K3 = 0.50; //
 
 float LQR_K1_1 = 200;   //平衡态
 float LQR_K2_1 = 15;   //
 float LQR_K3_1 = 0.15; //
+
 
 //电机参数
 BLDCMotor motor = BLDCMotor(5);
@@ -66,13 +66,15 @@ BLDCDriver3PWM driver = BLDCDriver3PWM(32, 33, 25, 22);
 
 //命令设置
 double target_velocity = 0;
-double target_angle = 88;
+double target_angle = 91;
 double target_voltage = 0;
 void onPacketCallBack(AsyncUDPPacket packet)
 {
+ 
   target_velocity = atoi((char*)(packet.data()));
   Serial.print("数据内容: ");
   Serial.println(target_velocity);
+  wifi_flag = 1;
 //  packet.print("reply data");
 }
 // instantiate the commander
@@ -180,8 +182,9 @@ int lim_v = 60;
 long loop_count = 0;
 void loop() {
     motor.loopFOC();
-  if (1)
+  if (loop_count++ == 10)
   {
+    loop_count = 0;
   while (i2cRead(0x3B, i2cData, 14));
     accX = (int16_t)((i2cData[0] << 8) | i2cData[1]);
     accY = (int16_t)((i2cData[2] << 8) | i2cData[3]);
@@ -217,13 +220,7 @@ void loop() {
    }
     else // else do swing-up
     {    // sets 1.5V to the motor in order to swing up
-      if(loop_count == 0)
-      {
-        loop_count = 30;
         target_voltage = -_sign(gyroZrate) * 3;
-      }
-      else
-        loop_count--;
     }
 
     // set the target voltage to the motor
@@ -261,8 +258,11 @@ void loop() {
       
 #endif
 #if 1
+
+Serial.print(kalAngleZ);Serial.print("\t");
+
   Serial.print(target_voltage);Serial.print("\t");
-  Serial.print(target_velocity);Serial.print("\t");
+//  Serial.print(target_velocity);Serial.print("\t");
   Serial.print(motor.shaft_velocity);Serial.print("\t");
   Serial.print(target_angle);Serial.print("\t");
   Serial.print(pendulum_angle+target_angle);Serial.print("\t");
@@ -271,17 +271,21 @@ void loop() {
 #endif
 //  motor.move(target_velocity);
   //可以使用该方法广播信息
-#if WIFI_FLAG
-
+if(wifi_flag)
+{
   memset(buf, 0, strlen(buf));  
   wifi_print("p",pendulum_angle+target_angle);
   wifi_print("t",target_angle);
   wifi_print("k",kalAngleZ);
   wifi_print("g",gyroZrate);
-  IPAddress broadcastAddr((~(uint32_t)WiFi.subnetMask())|((uint32_t)WiFi.localIP())); //计算广播地址
-  udp.writeTo((const unsigned char*)buf, strlen(buf), broadcastAddr, localUdpPort); //广播数据
+//  IPAddress broadcastAddr("192.168.4.255")
+//IPAddress broadcastAddr(((uint32_t)"192.168.4.2")); //计算广播地址
+//  IPAddress broadcastAddr((~(uint32_t)WiFi.subnetMask())|((uint32_t)WiFi.localIP())); //计算广播地址
+//  Serial.println(buf);
+//const char * udpAddress = "192.168.4.255";
+  udp.writeTo((const unsigned char*)buf, strlen(buf), IPAddress(192,168,4,2), localUdpPort); //广播数据
   }
-#endif
+}
 }
 /* mpu6050加速度转换为角度
             acc2rotation(ax, ay)
