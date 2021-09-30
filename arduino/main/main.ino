@@ -70,10 +70,12 @@ double target_angle = 91;
 double target_voltage = 0;
 void onPacketCallBack(AsyncUDPPacket packet)
 {
- 
-  target_velocity = atoi((char*)(packet.data()));
-  Serial.print("数据内容: ");
-  Serial.println(target_velocity);
+  char* da;
+  da= (char*)(packet.data());
+  Serial.println(da);
+//  target_velocity = atoi();
+//  Serial.print("数据内容: ");
+//  Serial.println(target_velocity);
   wifi_flag = 1;
 //  packet.print("reply data");
 }
@@ -357,4 +359,5 @@ void wifi_print(char * s,double num)
   strcat(str, n);
   strcat(buf+strlen(buf), str);
   strcat(buf, ",");
+
 }
