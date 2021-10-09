@@ -7,6 +7,7 @@ Deng's FOC 闭环速度控制例程 测试库：SimpleFOC 2.1.1 测试硬件：�
 默认PID针对的电机是 GB6010 ，使用自己的电机需要修改PID参数，才能实现更好效果
  */
 #include <SimpleFOC.h>
+#include "Command.h"
 #include <WiFi.h>
 #include <AsyncUDP.h> //引用以使用异步UDP
 #include <Kalman.h> // Source: https://github.com/TKJElectronics/KalmanFilter
@@ -65,6 +66,7 @@ BLDCDriver3PWM driver = BLDCDriver3PWM(32, 33, 25, 22);
 
 
 //命令设置
+Command command;
 double target_velocity = 0;
 double target_angle = 91;
 double target_voltage = 0;

@@ -14,13 +14,19 @@ void wifi_print(char * s,double num)
 	strcat(buf+strlen(buf), str);
 	strcat(buf, ",");
 }
-float v = 0.1;
+float v = 0;
+float a = 0;
 void re_command(float *num)
 {
 	*num = *num + 1;
 }
-//void doTarget(char* cmd) { command.scalar(&v, cmd); }
+void doTarget_v(char* cmd) { command.scalar(&v, cmd); }
+void doTarget_a(char* cmd) { command.scalar(&a, cmd); }
 main()
 {
-command.run();
+	command.add("T", doTarget_v);
+	command.add("A", doTarget_a);
+	command.run("A2233");
+	printf("%.2f",v);
+	printf("%.2f",a);
 }
