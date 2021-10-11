@@ -66,15 +66,19 @@ BLDCDriver3PWM driver = BLDCDriver3PWM(32, 33, 25, 22);
 
 
 //命令设置
-Command command;
+Command comm;
 double target_velocity = 0;
 double target_angle = 91;
 double target_voltage = 0;
+void do_K1(char* cmd) { comm.scalar(&LQR_K1, cmd); }
+
 void onPacketCallBack(AsyncUDPPacket packet)
 {
   char* da;
   da= (char*)(packet.data());
   Serial.println(da);
+  comm.run(da);
+  Serial.println(LQR_K1);
 //  target_velocity = atoi();
 //  Serial.print("数据内容: ");
 //  Serial.println(target_velocity);
@@ -84,7 +88,8 @@ void onPacketCallBack(AsyncUDPPacket packet)
 // instantiate the commander
 void setup() {
    Serial.begin(115200);
-
+   //命令设置
+  comm.add("K1",do_K1);
 
     // kalman mpu6050 init
   Wire.begin(19, 18,400000);// Set I2C frequency to 400kHz
@@ -261,7 +266,7 @@ void loop() {
     }
       
 #endif
-#if 1
+#if 0
 
 Serial.print(kalAngleZ);Serial.print("\t");
 

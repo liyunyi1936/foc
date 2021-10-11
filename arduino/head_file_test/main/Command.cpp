@@ -2,8 +2,8 @@
 
 void Command::run(char* str){
   for(int i=0; i < call_count; i++){
-        if(isSentinel(call_ids[i],str)){  // case :   call_ids = "T2"   str = "T215.15" 
-          call_list[i](str+strlen(call_ids[i]));  // get 15.15  input function 
+        if(isSentinel(call_ids[i],str)){  // case :   call_ids = "T2"   str = "T215.155" 
+          call_list[i](str+strlen(call_ids[i]));  // get 15.155  input function 
           break;
         }
       }
