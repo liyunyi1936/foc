@@ -12,7 +12,7 @@ Deng's FOC 闭环速度控制例程 测试库：SimpleFOC 2.1.1 测试硬件：�
 #include <AsyncUDP.h> //引用以使用异步UDP
 #include <Kalman.h> // Source: https://github.com/TKJElectronics/KalmanFilter
 Kalman kalmanZ;
-#define gyroZ_OFF -0.52
+#define gyroZ_OFF -0.19
 #define swing_up_voltage 5 //V
 #define balance_voltage 10   //V
 /* ----IMU Data---- */
@@ -68,7 +68,7 @@ BLDCDriver3PWM driver = BLDCDriver3PWM(32, 33, 25, 22);
 //命令设置
 Command comm;
 double target_velocity = 0;
-double target_angle = 91;
+double target_angle = 89.86;
 double target_voltage = 0;
 void do_K1(char* cmd) { comm.scalar(&LQR_K1, cmd); }
 
@@ -183,7 +183,8 @@ void setup() {
   Serial.println(F("Motor ready."));
   Serial.println(F("Set the target velocity using serial terminal:"));
 
-
+//  pinMode(22,OUTPUT);
+//  digitalWrite(22,LOW);
 }
 char buf[255];
 int t_v;
@@ -229,7 +230,7 @@ void loop() {
    }
     else // else do swing-up
     {    // sets 1.5V to the motor in order to swing up
-        target_voltage = -_sign(gyroZrate) * 3;
+        target_voltage = _sign(gyroZrate) * 3;
     }
 
     // set the target voltage to the motor
@@ -266,8 +267,9 @@ void loop() {
     }
       
 #endif
-#if 0
+#if 1
 
+//Serial.print(gyroZangle);Serial.print("\t");
 Serial.print(kalAngleZ);Serial.print("\t");
 
   Serial.print(target_voltage);Serial.print("\t");
