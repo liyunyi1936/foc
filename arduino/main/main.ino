@@ -51,13 +51,13 @@ PIDController angle_pid = PIDController(PID_P, PID_I, PID_D, balance_voltage * 0
 LowPassFilter lpf_throttle{0.00};
 #define FLAG_V 1
 //倒立摆参数
-float LQR_K1 = 400;  //摇摆到平衡
+float LQR_K1 = 600;  //摇摆到平衡
 float LQR_K2 = 80;   //
-float LQR_K3 = 0.50; //
+float LQR_K3 = -0.30; //
 
 float LQR_K1_1 = 200;   //平衡态
 float LQR_K2_1 = 15;   //
-float LQR_K3_1 = 0.15; //
+float LQR_K3_1 = -0.15; //
 
 
 //电机参数
@@ -68,7 +68,7 @@ BLDCDriver3PWM driver = BLDCDriver3PWM(32, 33, 25, 22);
 //命令设置
 Command comm;
 double target_velocity = 0;
-double target_angle = 89.86;
+double target_angle = 89.9;
 double target_voltage = 0;
 void do_K1(char* cmd) { comm.scalar(&LQR_K1, cmd); }
 
@@ -79,6 +79,7 @@ void onPacketCallBack(AsyncUDPPacket packet)
   Serial.println(da);
   comm.run(da);
   Serial.println(LQR_K1);
+    digitalWrite(22,LOW);
 //  target_velocity = atoi();
 //  Serial.print("数据内容: ");
 //  Serial.println(target_velocity);
@@ -183,8 +184,7 @@ void setup() {
   Serial.println(F("Motor ready."));
   Serial.println(F("Set the target velocity using serial terminal:"));
 
-//  pinMode(22,OUTPUT);
-//  digitalWrite(22,LOW);
+
 }
 char buf[255];
 int t_v;
@@ -230,7 +230,7 @@ void loop() {
    }
     else // else do swing-up
     {    // sets 1.5V to the motor in order to swing up
-        target_voltage = _sign(gyroZrate) * 3;
+        target_voltage = -_sign(gyroZrate) * 3;
     }
 
     // set the target voltage to the motor
@@ -240,32 +240,11 @@ void loop() {
     }
     else
     {
-      motor.move(lpf_throttle(target_voltage));
+      motor.move(lpf_throttle(-target_voltage));
     }
 
 #else
-    if (abs(pendulum_angle) < 0.6) // if angle small enough stabilize 0.5~30°,1.5~90°
-   {
-     target_velocity = controllerLQR(angle_pid(pendulum_angle), gyroZrate / 57.29578, motor.shaftVelocity());
-     //        limit the voltage set to the motor
-    if (abs(target_velocity) > lim_v)
-      target_velocity = _sign(target_velocity) * lim_v;
-   }
-    else // else do swing-up
-    {    // sets 1.5V to the motor in order to swing up
-      target_velocity = -_sign(gyroZrate) * 30;
-    }
-
-    // set the target voltage to the motor
-    if (accZ < -13000 && ((accX * accX + accY * accY) > (14000 * 14000)))
-    {
-      motor.move(0);
-    }
-    else
-    {
-      motor.move(lpf_throttle(target_velocity));
-    }
-      
+      motor.move(0);  
 #endif
 #if 1
 
