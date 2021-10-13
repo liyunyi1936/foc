@@ -28,7 +28,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
     def CreateSignalSlot(self):
         self.velocity_horizontalSlider.valueChanged.connect(self.velocity_horizontalSlider_valueChanged)
         self.wifi_config_pushButton.clicked.connect(self.wifi_config_pushButton_clicked)
-
+        self.wifi_command_pushButton.clicked.connect(self.wifi_command_pushButton_clicked)
     # 设置实例
     def CreateItems(self):
         # 定时器-绘图刷新
@@ -79,6 +79,9 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.velocity_lineEdit.setText(str(self.target_velocity))
         self.udp.send_message(str(self.target_velocity))
         print(str(self.target_velocity))
+    # command命令发送事件
+    def wifi_command_pushButton_clicked(self):
+        self.udp.send_message(self.wifi_command_lineEdit.text())
     def wifi_config_pushButton_clicked(self):
         try:
             # self.re_item = ['k','g','l','t']
@@ -113,11 +116,10 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             # print(recv_data)
             for i, data in enumerate(recv_data):
                 self.re_item.append(''.join(re.split(r'[^A-Za-z]', data)))
-                data = re.findall(r"\d+\.?\d*", data)
-                # print(i,data)
+                data = data.replace(self.re_item[i],'')
 
                 self.signalDataArrays[i] = np.roll(self.signalDataArrays[i], -1)
-                self.signalDataArrays[i][-1] = data[0]
+                self.signalDataArrays[i][-1] = data
                 pass
     def update_plot(self):
         if self.wifi_recv_flag:

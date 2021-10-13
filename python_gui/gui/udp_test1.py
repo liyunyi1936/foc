@@ -16,7 +16,7 @@ def udp_recv(udp_socket):
         recv_data = udp_socket.recv(1024)
         recv_data = recv_data.decode('utf-8')
         udp_data = recv_data
-        # print('收到信息为:%s'%recv_data)
+        print('收到信息为:%s'%recv_data)
 
 def main():
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)   #创建套接字

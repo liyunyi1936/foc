@@ -51,13 +51,13 @@ PIDController angle_pid = PIDController(PID_P, PID_I, PID_D, balance_voltage * 0
 LowPassFilter lpf_throttle{0.00};
 #define FLAG_V 1
 //倒立摆参数
-float LQR_K1 = 600;  //摇摆到平衡
-float LQR_K2 = 80;   //
-float LQR_K3 = -0.30; //
+float LQR_K1 = 0;  //摇摆到平衡
+float LQR_K2 = 0;   //
+float LQR_K3 = 0; //
 
-float LQR_K1_1 = 200;   //平衡态
-float LQR_K2_1 = 15;   //
-float LQR_K3_1 = -0.15; //
+float LQR_K1_1 = 0;   //平衡态
+float LQR_K2_1 = 0;   //
+float LQR_K3_1 = 0; //
 
 
 //电机参数
@@ -67,19 +67,23 @@ BLDCDriver3PWM driver = BLDCDriver3PWM(32, 33, 25, 22);
 
 //命令设置
 Command comm;
-double target_velocity = 0;
-double target_angle = 89.9;
-double target_voltage = 0;
-void do_K1(char* cmd) { comm.scalar(&LQR_K1, cmd); }
-
+float target_velocity = 0;
+float target_angle = 90;
+float target_voltage = 0;
+void do_K11(char* cmd) { comm.scalar(&LQR_K1, cmd); }
+void do_K12(char* cmd) { comm.scalar(&LQR_K2, cmd); }
+void do_K13(char* cmd) { comm.scalar(&LQR_K3, cmd); }
+void do_K21(char* cmd) { comm.scalar(&LQR_K1_1, cmd); }
+void do_K22(char* cmd) { comm.scalar(&LQR_K2_1, cmd); }
+void do_K23(char* cmd) { comm.scalar(&LQR_K3_1, cmd); }
+void do_TA(char* cmd) { comm.scalar(&target_angle, cmd); }
 void onPacketCallBack(AsyncUDPPacket packet)
 {
   char* da;
   da= (char*)(packet.data());
   Serial.println(da);
   comm.run(da);
-  Serial.println(LQR_K1);
-    digitalWrite(22,LOW);
+
 //  target_velocity = atoi();
 //  Serial.print("数据内容: ");
 //  Serial.println(target_velocity);
@@ -90,8 +94,13 @@ void onPacketCallBack(AsyncUDPPacket packet)
 void setup() {
    Serial.begin(115200);
    //命令设置
-  comm.add("K1",do_K1);
-
+  comm.add("K11",do_K11);
+  comm.add("K12",do_K12);
+  comm.add("K13",do_K13);
+  comm.add("K21",do_K21);
+  comm.add("K22",do_K22);
+  comm.add("K23",do_K23);
+  comm.add("TA",do_TA);
     // kalman mpu6050 init
   Wire.begin(19, 18,400000);// Set I2C frequency to 400kHz
   i2cData[0] = 7;    // Set the sample rate to 1000Hz - 8kHz/(7+1) = 1000Hz
@@ -183,7 +192,7 @@ void setup() {
 
   Serial.println(F("Motor ready."));
   Serial.println(F("Set the target velocity using serial terminal:"));
-
+//    digitalWrite(22,LOW);
 
 }
 char buf[255];
@@ -218,12 +227,12 @@ void loop() {
     if (gyroZangle < -180 || gyroZangle > 180)
       gyroZangle = kalAngleZ;
       
-
-  float pendulum_angle = constrainAngle((fmod(kalAngleZ * 3, 360.0) / 3.0 - target_angle) / 57.29578);
+  float pendulum_angle = constrainAngle(fmod(kalAngleZ,120)-target_angle);
+//  float pendulum_angle = constrainAngle((fmod(kalAngleZ * 3, 360.0) / 3.0 - target_angle) / 57.29578);
 #if FLAG_V
-   if (abs(pendulum_angle) < 0.6) // if angle small enough stabilize 0.5~30°,1.5~90°
+   if (abs(pendulum_angle) < 18) // if angle small enough stabilize 0.5~30°,1.5~90°
    {
-     target_voltage = controllerLQR(angle_pid(pendulum_angle), gyroZrate / 57.29578, motor.shaftVelocity());
+     target_voltage = controllerLQR(angle_pid(pendulum_angle), gyroZrate, motor.shaftVelocity());
 //        limit the voltage set to the motor
     if (abs(target_voltage) > motor.voltage_limit * 0.7)
       target_voltage = _sign(target_voltage) * motor.voltage_limit * 0.7;
@@ -240,13 +249,13 @@ void loop() {
     }
     else
     {
-      motor.move(lpf_throttle(-target_voltage));
+      motor.move(lpf_throttle(target_voltage));
     }
 
 #else
       motor.move(0);  
 #endif
-#if 1
+#if 0
 
 //Serial.print(gyroZangle);Serial.print("\t");
 Serial.print(kalAngleZ);Serial.print("\t");
@@ -255,7 +264,7 @@ Serial.print(kalAngleZ);Serial.print("\t");
 //  Serial.print(target_velocity);Serial.print("\t");
   Serial.print(motor.shaft_velocity);Serial.print("\t");
   Serial.print(target_angle);Serial.print("\t");
-  Serial.print(pendulum_angle+target_angle);Serial.print("\t");
+  Serial.print(pendulum_angle);Serial.print("\t");
   Serial.print(gyroZrate);Serial.print("\t");
   Serial.print("\r\n");
 #endif
@@ -264,7 +273,8 @@ Serial.print(kalAngleZ);Serial.print("\t");
 if(wifi_flag)
 {
   memset(buf, 0, strlen(buf));  
-  wifi_print("p",pendulum_angle+target_angle);
+  wifi_print("v",  motor.shaftVelocity());
+  wifi_print("p",pendulum_angle);
   wifi_print("t",target_angle);
   wifi_print("k",kalAngleZ);
   wifi_print("g",gyroZrate);
@@ -295,13 +305,18 @@ double acc2rotation(double x, double y)
     return (atan(x / y) / 1.570796 * 90);
   }
 }
+
 // function constraining the angle in between -pi and pi, in degrees -180 and 180
 float constrainAngle(float x)
 {
-  x = fmod(x + M_PI, _2PI);
-  if (x < 0)
-    x += _2PI;
-  return x - M_PI;
+  float a = 0;
+  if(x < 0)
+  {
+      a = 120+x;
+    if(a<abs(x))
+      return a;
+  }
+  return x;
 }
 // LQR stabilization controller functions
 // calculating the voltage that needs to be set to the motor in order to stabilize the pendulum
@@ -313,7 +328,7 @@ float controllerLQR(float p_angle, float p_vel, float m_vel)
   //  - k = [40, 7, 0.3]
   //  - k = [13.3, 21, 0.3]
   //  - x = [pendulum angle, pendulum velocity, motor velocity]'
-  if (abs(p_angle) > 0.05)
+  if (abs(p_angle) > 1.5)
   {
     last_unstable_time = millis();
     stable = 0;
@@ -346,6 +361,6 @@ void wifi_print(char * s,double num)
   strcpy(str,s);
   strcat(str, n);
   strcat(buf+strlen(buf), str);
-  strcat(buf, ",");
+  strcat(buf, ",\0");
 
 }
