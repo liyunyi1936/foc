@@ -51,13 +51,13 @@ PIDController angle_pid = PIDController(PID_P, PID_I, PID_D, balance_voltage * 0
 LowPassFilter lpf_throttle{0.00};
 #define FLAG_V 1
 //倒立摆参数
-float LQR_K1 = 0;  //摇摆到平衡
-float LQR_K2 = 0;   //
-float LQR_K3 = 0; //
+float LQR_K1 = 4;  //摇摆到平衡
+float LQR_K2 = 1.5;   //
+float LQR_K3 = 0.30; //
 
-float LQR_K1_1 = 0;   //平衡态
-float LQR_K2_1 = 0;   //
-float LQR_K3_1 = 0; //
+float LQR_K1_1 = 3.49;   //平衡态
+float LQR_K2_1 = 0.26;   //
+float LQR_K3_1 = 0.15; //
 
 
 //电机参数
@@ -201,9 +201,10 @@ int lim_v = 60;
 long loop_count = 0;
 void loop() {
     motor.loopFOC();
-  if (loop_count++ == 10)
+  if (1)
   {
-    loop_count = 0;
+//    loop_count++ == 10
+//    loop_count = 0;
   while (i2cRead(0x3B, i2cData, 14));
     accX = (int16_t)((i2cData[0] << 8) | i2cData[1]);
     accY = (int16_t)((i2cData[2] << 8) | i2cData[3]);
@@ -239,7 +240,7 @@ void loop() {
    }
     else // else do swing-up
     {    // sets 1.5V to the motor in order to swing up
-        target_voltage = -_sign(gyroZrate) * 3;
+        target_voltage = -_sign(gyroZrate) * 2;
     }
 
     // set the target voltage to the motor
@@ -255,7 +256,7 @@ void loop() {
 #else
       motor.move(0);  
 #endif
-#if 0
+#if 1
 
 //Serial.print(gyroZangle);Serial.print("\t");
 Serial.print(kalAngleZ);Serial.print("\t");

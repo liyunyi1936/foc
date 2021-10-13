@@ -28,7 +28,9 @@ class MyWindow(QMainWindow, Ui_MainWindow):
     def CreateSignalSlot(self):
         self.velocity_horizontalSlider.valueChanged.connect(self.velocity_horizontalSlider_valueChanged)
         self.wifi_config_pushButton.clicked.connect(self.wifi_config_pushButton_clicked)
-        self.wifi_command_pushButton.clicked.connect(self.wifi_command_pushButton_clicked)
+        self.wifi_command_pushButton_1.clicked.connect(self.wifi_command_pushButton_1_clicked)
+        self.wifi_command_pushButton_2.clicked.connect(self.wifi_command_pushButton_2_clicked)
+        self.wifi_command_pushButton_3.clicked.connect(self.wifi_command_pushButton_3_clicked)
     # 设置实例
     def CreateItems(self):
         # 定时器-绘图刷新
@@ -80,8 +82,12 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.udp.send_message(str(self.target_velocity))
         print(str(self.target_velocity))
     # command命令发送事件
-    def wifi_command_pushButton_clicked(self):
-        self.udp.send_message(self.wifi_command_lineEdit.text())
+    def wifi_command_pushButton_1_clicked(self):
+        self.udp.send_message(self.wifi_command_lineEdit_1.text())
+    def wifi_command_pushButton_2_clicked(self):
+        self.udp.send_message(self.wifi_command_lineEdit_2.text())
+    def wifi_command_pushButton_3_clicked(self):
+        self.udp.send_message(self.wifi_command_lineEdit_3.text())
     def wifi_config_pushButton_clicked(self):
         try:
             # self.re_item = ['k','g','l','t']
