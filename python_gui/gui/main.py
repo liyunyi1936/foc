@@ -26,7 +26,9 @@ class MyWindow(QMainWindow, Ui_MainWindow):
 
     # 设置信号与槽
     def CreateSignalSlot(self):
-        self.velocity_horizontalSlider.valueChanged.connect(self.velocity_horizontalSlider_valueChanged)
+        self.horizontalSlider_1.valueChanged.connect(self.horizontalSlider_1_valueChanged)
+        self.horizontalSlider_2.valueChanged.connect(self.horizontalSlider_2_valueChanged)
+        self.horizontalSlider_3.valueChanged.connect(self.horizontalSlider_3_valueChanged)
         self.wifi_config_pushButton.clicked.connect(self.wifi_config_pushButton_clicked)
         self.wifi_command_pushButton_1.clicked.connect(self.wifi_command_pushButton_1_clicked)
         self.wifi_command_pushButton_2.clicked.connect(self.wifi_command_pushButton_2_clicked)
@@ -42,6 +44,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         # self.wifi_IP_lineEdit.setText(self.udp.user_ip)
     def variable_init(self):
         # 图表数据变量
+        self.wifi_open_flag = 0
         self.wifi_recv_flag = 0
         self.udp_data = 0
         self.target_velocity = 0
@@ -76,11 +79,24 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.gridLayout.addWidget(self.plotWidget)
         self.tool_layout.addWidget(self.controlPlotWidget)
     # 滑条绑定
-    def velocity_horizontalSlider_valueChanged(self):
-        self.target_velocity = self.velocity_horizontalSlider.value()
-        self.velocity_lineEdit.setText(str(self.target_velocity))
-        self.udp.send_message(str(self.target_velocity))
-        print(str(self.target_velocity))
+    def horizontalSlider_1_valueChanged(self):
+        value = self.horizontalSlider_1.value()
+        value = float(self.left_lineEdit_1.text())+(value+100)*(float(self.right_lineEdit_1.text())-float(self.left_lineEdit_1.text()))/200
+        self.num_lineEdit_1.setText(str(value))
+        value = self.command_lineEdit_1.text()+str(value)
+        self.udp.send_message(str(value))
+    def horizontalSlider_2_valueChanged(self):
+        value = self.horizontalSlider_2.value()
+        value = float(self.left_lineEdit_2.text())+(value+100)*(float(self.right_lineEdit_2.text())-float(self.left_lineEdit_2.text()))/200
+        self.num_lineEdit_2.setText(str(value))
+        value = self.command_lineEdit_2.text()+str(value)
+        self.udp.send_message(str(value))
+    def horizontalSlider_3_valueChanged(self):
+        value = self.horizontalSlider_3.value()
+        value = float(self.left_lineEdit_3.text())+(value+100)*(float(self.right_lineEdit_3.text())-float(self.left_lineEdit_3.text()))/200
+        self.num_lineEdit_3.setText(str(value))
+        value = self.command_lineEdit_3.text()+str(value)
+        self.udp.send_message(str(value))
     # command命令发送事件
     def wifi_command_pushButton_1_clicked(self):
         self.udp.send_message(self.wifi_command_lineEdit_1.text())
@@ -96,7 +112,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             print(self.wifi_IP_lineEdit.text(),type(self.wifi_IP_lineEdit.text()))
             self.udp.udpClientSocket.bind((self.wifi_IP_lineEdit.text(), 2333))
             # 第一次接受数据，用于判断项目数，
-            self.udp.send_message("s")
+            self.udp.send_message("START")
             recv_data = self.udp.udpClientSocket.recv(1024)
             recv_data = recv_data.decode('utf-8')
             recv_data = recv_data[:-1]
@@ -109,6 +125,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.plot_init()
             t1 = threading.Thread(target=self.udp_recv)
             t1.start()
+            self.wifi_open_flag = 1
         except Exception as e:
             print(e)
             QMessageBox.critical(self, "错误", '该请求的地址无效')
@@ -143,6 +160,10 @@ class ControlPlotPanel(QtWidgets.QWidget):
     def __init__(self, parent=None, controllerPlotWidget=None):
         '''Constructor for ToolsWidget'''
         super().__init__(parent)
+        # 变量
+        self.MotorEnable_flag = 0
+
+        # 继承主窗口对象
         self.controlledPlot = controllerPlotWidget
 
         self.horizontalLayout1 = QtWidgets.QHBoxLayout()
@@ -155,6 +176,13 @@ class ControlPlotPanel(QtWidgets.QWidget):
         self.startStopButton.clicked.connect(self.wifi_recv_open_pushButton_clicked)
         self.startStopButton.setIcon(GUIToolKit.getIconByName('start'))
         self.horizontalLayout1.addWidget(self.startStopButton)
+
+        self.MotorEnableButton = QtWidgets.QPushButton(self)
+        self.MotorEnableButton.setText('Disable')
+        self.MotorEnableButton.setObjectName('Disable')
+        self.MotorEnableButton.clicked.connect(self.MotorEnableButton_clicked)
+        self.MotorEnableButton.setIcon(GUIToolKit.getIconByName('stop'))
+        self.horizontalLayout1.addWidget(self.MotorEnableButton)
 
         self.zoomAllButton = QtWidgets.QPushButton(self)
         self.zoomAllButton.setObjectName('zoomAllButton')
@@ -183,6 +211,16 @@ class ControlPlotPanel(QtWidgets.QWidget):
         else:
             self.controlledPlot.wifi_recv_flag = 0
             self.startStopButton.setText('Start')
+    def MotorEnableButton_clicked(self):
+        if self.MotorEnable_flag == 0:
+            # Motor关闭
+            self.MotorEnable_flag = 1
+            self.MotorEnableButton.setText('Enable')
+            self.controlledPlot.udp.send_message("MOTOR")
+        else:
+            self.MotorEnable_flag = 0
+            self.MotorEnableButton.setText('Disable')
+            self.controlledPlot.udp.send_message("MOTOR")
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     myWin = MyWindow()

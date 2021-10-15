@@ -63,13 +63,13 @@ float LQR_K3_1 = 0.15; //
 //电机参数
 BLDCMotor motor = BLDCMotor(5);
 BLDCDriver3PWM driver = BLDCDriver3PWM(32, 33, 25, 22);
-
-
-//命令设置
-Command comm;
 float target_velocity = 0;
 float target_angle = 90;
 float target_voltage = 0;
+
+//命令设置
+Command comm;
+bool Motor_enable_flag = 0;
 void do_K11(char* cmd) { comm.scalar(&LQR_K1, cmd); }
 void do_K12(char* cmd) { comm.scalar(&LQR_K2, cmd); }
 void do_K13(char* cmd) { comm.scalar(&LQR_K3, cmd); }
@@ -77,6 +77,15 @@ void do_K21(char* cmd) { comm.scalar(&LQR_K1_1, cmd); }
 void do_K22(char* cmd) { comm.scalar(&LQR_K2_1, cmd); }
 void do_K23(char* cmd) { comm.scalar(&LQR_K3_1, cmd); }
 void do_TA(char* cmd) { comm.scalar(&target_angle, cmd); }
+void do_START(char* cmd) {  wifi_flag = 1; }
+void do_MOTOR(char* cmd)
+{  
+  if(Motor_enable_flag)
+    digitalWrite(22,HIGH);
+  else 
+    digitalWrite(22,LOW);
+  Motor_enable_flag = !Motor_enable_flag;
+}
 void onPacketCallBack(AsyncUDPPacket packet)
 {
   char* da;
@@ -84,10 +93,6 @@ void onPacketCallBack(AsyncUDPPacket packet)
   Serial.println(da);
   comm.run(da);
 
-//  target_velocity = atoi();
-//  Serial.print("数据内容: ");
-//  Serial.println(target_velocity);
-  wifi_flag = 1;
 //  packet.print("reply data");
 }
 // instantiate the commander
@@ -101,6 +106,8 @@ void setup() {
   comm.add("K22",do_K22);
   comm.add("K23",do_K23);
   comm.add("TA",do_TA);
+  comm.add("START",do_START);
+  comm.add("MOTOR",do_MOTOR);
     // kalman mpu6050 init
   Wire.begin(19, 18,400000);// Set I2C frequency to 400kHz
   i2cData[0] = 7;    // Set the sample rate to 1000Hz - 8kHz/(7+1) = 1000Hz
@@ -192,7 +199,7 @@ void setup() {
 
   Serial.println(F("Motor ready."));
   Serial.println(F("Set the target velocity using serial terminal:"));
-//    digitalWrite(22,LOW);
+
 
 }
 char buf[255];
@@ -256,7 +263,7 @@ void loop() {
 #else
       motor.move(0);  
 #endif
-#if 1
+#if 0
 
 //Serial.print(gyroZangle);Serial.print("\t");
 Serial.print(kalAngleZ);Serial.print("\t");
