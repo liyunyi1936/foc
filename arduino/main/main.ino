@@ -13,7 +13,6 @@ Deng's FOC 闭环速度控制例程 测试库：SimpleFOC 2.1.1 测试硬件：�
 #include <Kalman.h> // Source: https://github.com/TKJElectronics/KalmanFilter
 Kalman kalmanZ;
 #define gyroZ_OFF -0.19
-#define swing_up_voltage 5 //V
 #define balance_voltage 10   //V
 /* ----IMU Data---- */
 
@@ -49,16 +48,19 @@ float PID_D = 0; //
 TwoWire I2Ctwo = TwoWire(1);
 PIDController angle_pid = PIDController(PID_P, PID_I, PID_D, balance_voltage * 0.7, 20000);
 LowPassFilter lpf_throttle{0.00};
-#define FLAG_V 1
+#define FLAG_V 0
 //倒立摆参数
-float LQR_K1 = 4;  //摇摆到平衡
-float LQR_K2 = 1.5;   //
-float LQR_K3 = 0.30; //
+float LQR_K1_1 = 4;  //摇摆到平衡
+float LQR_K1_2 = 1.5;   //
+float LQR_K1_3 = 0.30; //
 
-float LQR_K1_1 = 3.49;   //平衡态
-float LQR_K2_1 = 0.26;   //
-float LQR_K3_1 = 0.15; //
+float LQR_K2_1 = 3.49;   //平衡态
+float LQR_K2_2 = 0.26;   //
+float LQR_K2_3 = 0.15; //
 
+float LQR_K3_1 = 5.25;   //平衡态
+float LQR_K3_2 = 3.18;   //
+float LQR_K3_3 = 1.86; //
 
 //电机参数
 BLDCMotor motor = BLDCMotor(5);
@@ -66,18 +68,12 @@ BLDCDriver3PWM driver = BLDCDriver3PWM(32, 33, 25, 22);
 float target_velocity = 0;
 float target_angle = 90;
 float target_voltage = 0;
-
+float swing_up_voltage = 2;
 //命令设置
 Command comm;
 bool Motor_enable_flag = 0;
-void do_K11(char* cmd) { comm.scalar(&LQR_K1, cmd); }
-void do_K12(char* cmd) { comm.scalar(&LQR_K2, cmd); }
-void do_K13(char* cmd) { comm.scalar(&LQR_K3, cmd); }
-void do_K21(char* cmd) { comm.scalar(&LQR_K1_1, cmd); }
-void do_K22(char* cmd) { comm.scalar(&LQR_K2_1, cmd); }
-void do_K23(char* cmd) { comm.scalar(&LQR_K3_1, cmd); }
 void do_TA(char* cmd) { comm.scalar(&target_angle, cmd); }
-void do_START(char* cmd) {  wifi_flag = 1; }
+void do_START(char* cmd) {  wifi_flag = !wifi_flag; }
 void do_MOTOR(char* cmd)
 {  
   if(Motor_enable_flag)
@@ -86,6 +82,24 @@ void do_MOTOR(char* cmd)
     digitalWrite(22,LOW);
   Motor_enable_flag = !Motor_enable_flag;
 }
+void do_SW(char* cmd) { comm.scalar(&swing_up_voltage, cmd); }
+#if FLAG_V
+void do_K11(char* cmd) { comm.scalar(&LQR_K1_1, cmd); }
+void do_K12(char* cmd) { comm.scalar(&LQR_K1_2, cmd); }
+void do_K13(char* cmd) { comm.scalar(&LQR_K1_3, cmd); }
+void do_K21(char* cmd) { comm.scalar(&LQR_K2_1, cmd); }
+void do_K22(char* cmd) { comm.scalar(&LQR_K2_2, cmd); }
+void do_K23(char* cmd) { comm.scalar(&LQR_K2_3, cmd); }
+#else
+void do_vp(char* cmd) { comm.scalar(&motor.PID_velocity.P, cmd); }
+void do_vi(char* cmd) { comm.scalar(&motor.PID_velocity.I, cmd); }
+void do_tv(char* cmd) { comm.scalar(&target_velocity, cmd); }
+void do_K31(char* cmd) { comm.scalar(&LQR_K3_1, cmd); }
+void do_K32(char* cmd) { comm.scalar(&LQR_K3_2, cmd); }
+void do_K33(char* cmd) { comm.scalar(&LQR_K3_3, cmd); }
+#endif
+
+
 void onPacketCallBack(AsyncUDPPacket packet)
 {
   char* da;
@@ -99,15 +113,25 @@ void onPacketCallBack(AsyncUDPPacket packet)
 void setup() {
    Serial.begin(115200);
    //命令设置
+ comm.add("TA",do_TA);
+  comm.add("START",do_START);
+   comm.add("MOTOR",do_MOTOR);
+    comm.add("SW",do_SW);
+#if FLAG_V
   comm.add("K11",do_K11);
   comm.add("K12",do_K12);
   comm.add("K13",do_K13);
   comm.add("K21",do_K21);
   comm.add("K22",do_K22);
   comm.add("K23",do_K23);
-  comm.add("TA",do_TA);
-  comm.add("START",do_START);
-  comm.add("MOTOR",do_MOTOR);
+#else
+  comm.add("VP",do_vp);
+  comm.add("VI",do_vi);
+  comm.add("TV",do_tv);
+  comm.add("K31",do_K31);
+  comm.add("K32",do_K32);
+  comm.add("K33",do_K33);
+#endif
     // kalman mpu6050 init
   Wire.begin(19, 18,400000);// Set I2C frequency to 400kHz
   i2cData[0] = 7;    // Set the sample rate to 1000Hz - 8kHz/(7+1) = 1000Hz
@@ -175,8 +199,8 @@ void setup() {
 #else
   motor.controller = MotionControlType::velocity;
     //速度PI环设置
-  motor.PID_velocity.P = 20;
-  motor.PID_velocity.I = 20;
+  motor.PID_velocity.P = 0.5;
+  motor.PID_velocity.I = 10;
 #endif
 
 
@@ -203,8 +227,6 @@ void setup() {
 
 }
 char buf[255];
-int t_v;
-int lim_v = 60;
 long loop_count = 0;
 void loop() {
     motor.loopFOC();
@@ -238,7 +260,7 @@ void loop() {
   float pendulum_angle = constrainAngle(fmod(kalAngleZ,120)-target_angle);
 //  float pendulum_angle = constrainAngle((fmod(kalAngleZ * 3, 360.0) / 3.0 - target_angle) / 57.29578);
 #if FLAG_V
-   if (abs(pendulum_angle) < 18) // if angle small enough stabilize 0.5~30°,1.5~90°
+   if (abs(pendulum_angle) < 12) // if angle small enough stabilize 0.5~30°,1.5~90°
    {
      target_voltage = controllerLQR(angle_pid(pendulum_angle), gyroZrate, motor.shaftVelocity());
 //        limit the voltage set to the motor
@@ -247,7 +269,7 @@ void loop() {
    }
     else // else do swing-up
     {    // sets 1.5V to the motor in order to swing up
-        target_voltage = -_sign(gyroZrate) * 2;
+        target_voltage = -_sign(gyroZrate) * 1.5;
     }
 
     // set the target voltage to the motor
@@ -261,7 +283,21 @@ void loop() {
     }
 
 #else
-      motor.move(0);  
+if (abs(pendulum_angle) < 18) // if angle small enough stabilize 0.5~30°,1.5~90°
+   {
+  target_velocity = LQR_K3_1*pendulum_angle+LQR_K3_2*gyroZrate+LQR_K3_3*motor.shaftVelocity();
+  if (abs(target_velocity) > 140)
+      target_velocity = _sign(target_velocity) * 140;
+      motor.controller = MotionControlType::velocity;
+      motor.move(target_velocity);
+   }
+   else // else do swing-up
+    {    // sets 1.5V to the motor in order to swing up
+      motor.controller = MotionControlType::torque;
+        target_voltage = -_sign(gyroZrate) * swing_up_voltage;
+        motor.move(target_voltage);
+    }
+
 #endif
 #if 0
 
@@ -281,16 +317,14 @@ Serial.print(kalAngleZ);Serial.print("\t");
 if(wifi_flag)
 {
   memset(buf, 0, strlen(buf));  
-  wifi_print("v",  motor.shaftVelocity());
+ 
+  wifi_print("v", motor.shaftVelocity());
+  wifi_print("vq",motor.voltage.q);
   wifi_print("p",pendulum_angle);
   wifi_print("t",target_angle);
   wifi_print("k",kalAngleZ);
   wifi_print("g",gyroZrate);
-//  IPAddress broadcastAddr("192.168.4.255")
-//IPAddress broadcastAddr(((uint32_t)"192.168.4.2")); //计算广播地址
-//  IPAddress broadcastAddr((~(uint32_t)WiFi.subnetMask())|((uint32_t)WiFi.localIP())); //计算广播地址
-//  Serial.println(buf);
-//const char * udpAddress = "192.168.4.255";
+
   udp.writeTo((const unsigned char*)buf, strlen(buf), IPAddress(192,168,4,2), localUdpPort); //广播数据
   }
 }
@@ -350,12 +384,12 @@ float controllerLQR(float p_angle, float p_vel, float m_vel)
   float u;
   if (!stable)
   {
-    u = LQR_K1 * p_angle + LQR_K2 * p_vel + LQR_K3 * m_vel;
+    u = LQR_K1_1 * p_angle + LQR_K1_2 * p_vel + LQR_K1_3 * m_vel;
   }
   else
   {
     //u = LQR_K1 * p_angle + LQR_K2 * p_vel + LQR_K3 * m_vel;
-    u = LQR_K1_1 * p_angle + LQR_K2_1 * p_vel + LQR_K3_1 * m_vel;
+    u = LQR_K2_1 * p_angle + LQR_K2_2 * p_vel + LQR_K2_3 * m_vel;
   }
 
 

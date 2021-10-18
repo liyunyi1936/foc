@@ -211,7 +211,7 @@
       <item>
        <widget class="QLineEdit" name="command_lineEdit_1">
         <property name="text">
-         <string>K11</string>
+         <string>K31</string>
         </property>
        </widget>
       </item>
@@ -284,7 +284,7 @@
       <item>
        <widget class="QLineEdit" name="command_lineEdit_2">
         <property name="text">
-         <string>K12</string>
+         <string>K32</string>
         </property>
        </widget>
       </item>
@@ -357,7 +357,7 @@
       <item>
        <widget class="QLineEdit" name="command_lineEdit_3">
         <property name="text">
-         <string>K13</string>
+         <string>K33</string>
         </property>
        </widget>
       </item>
