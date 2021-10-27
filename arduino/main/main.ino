@@ -1,19 +1,22 @@
   /**
-Deng's FOC 闭环速度控制例程 测试库：SimpleFOC 2.1.1 测试硬件：灯哥开源FOC V1.0
-在串口窗口中输入：T+速度，就可以使得两个电机闭环转动
-比如让两个电机都以 10rad/s 的速度转动，则输入：T10
-在使用自己的电机时，请一定记得修改默认极对数，即 BLDCMotor(7) 中的值，设置为自己的极对数数字
-程序默认设置的供电电压为 16.8V,用其他电压供电请记得修改 voltage_power_supply , voltage_limit 变量中的值
-默认PID针对的电机是 GB6010 ，使用自己的电机需要修改PID参数，才能实现更好效果
+arduino开发环境-灯哥开源FOChttps://gitee.com/ream_d/Deng-s-foc-controller，并安装Kalman。
+FOC引脚32, 33, 25, 22    22为enable
+AS5600霍尔传感器 SDA-23 SCL-5  MPU6050六轴传感器 SDA-19 SCL-18
+本程序有两种平衡方式， FLAG_V为1时使用电压控制，为0时候速度控制。电压控制时LQR参数使用K1和K2，速度控制时LQR参数使用K3和K4
+在wifi上位机窗口中输入：TA+角度，就可以修改平衡角度
+比如让平衡角度为90度，则输入：TA90，并且会存入eeprom的位置0中 注：wifi发送命令不能过快，因为每次都会保存进eeprom
+在使用自己的电机时，请一定记得修改默认极对数，即 BLDCMotor(5) 中的值，设置为自己的极对数数字，磁铁数量/2
+程序默认设置的供电电压为 12V,用其他电压供电请记得修改 voltage_power_supply , voltage_limit 变量中的值
+默认PID针对的电机是 GB2204 ，使用自己的电机需要修改PID参数，才能实现更好效果
  */
 #include <SimpleFOC.h>
 #include "Command.h"
 #include <WiFi.h>
 #include <AsyncUDP.h> //引用以使用异步UDP
 #include <Kalman.h> // Source: https://github.com/TKJElectronics/KalmanFilter
+#include "EEPROM.h"
 Kalman kalmanZ;
 #define gyroZ_OFF -0.19
-#define balance_voltage 10   //V
 /* ----IMU Data---- */
 
 double accX, accY, accZ;
@@ -42,11 +45,7 @@ unsigned int localUdpPort = 2333; //本地端口号
 void wifi_print(char * s,double num);
 
 MagneticSensorI2C sensor = MagneticSensorI2C(AS5600_I2C);
-float PID_P = 1; //
-float PID_I = 0; //
-float PID_D = 0; //
 TwoWire I2Ctwo = TwoWire(1);
-PIDController angle_pid = PIDController(PID_P, PID_I, PID_D, balance_voltage * 0.7, 20000);
 LowPassFilter lpf_throttle{0.00};
 #define FLAG_V 0
 //倒立摆参数
@@ -58,21 +57,29 @@ float LQR_K2_1 = 3.49;   //平衡态
 float LQR_K2_2 = 0.26;   //
 float LQR_K2_3 = 0.15; //
 
-float LQR_K3_1 = 5.25;   //平衡态
+float LQR_K3_1 = 5.25;   //摇摆到平衡
 float LQR_K3_2 = 3.18;   //
 float LQR_K3_3 = 1.86; //
+
+float LQR_K4_1 = 2.4;   //摇摆到平衡
+float LQR_K4_2 = 1.5;   //
+float LQR_K4_3 = 1.42; //
 
 //电机参数
 BLDCMotor motor = BLDCMotor(5);
 BLDCDriver3PWM driver = BLDCDriver3PWM(32, 33, 25, 22);
 float target_velocity = 0;
-float target_angle = 90;
+float target_angle = 89.3;
 float target_voltage = 0;
-float swing_up_voltage = 2;
+float swing_up_voltage = 1.8;
+float swing_up_angle = 18;
 //命令设置
 Command comm;
 bool Motor_enable_flag = 0;
-void do_TA(char* cmd) { comm.scalar(&target_angle, cmd); }
+void do_TA(char* cmd) { comm.scalar(&target_angle, cmd);EEPROM.writeFloat(0, target_angle); }
+void do_SV(char* cmd) { comm.scalar(&swing_up_voltage, cmd); EEPROM.writeFloat(4, swing_up_voltage); }
+void do_SA(char* cmd) { comm.scalar(&swing_up_angle, cmd);EEPROM.writeFloat(8, swing_up_angle); }
+
 void do_START(char* cmd) {  wifi_flag = !wifi_flag; }
 void do_MOTOR(char* cmd)
 {  
@@ -82,7 +89,6 @@ void do_MOTOR(char* cmd)
     digitalWrite(22,LOW);
   Motor_enable_flag = !Motor_enable_flag;
 }
-void do_SW(char* cmd) { comm.scalar(&swing_up_voltage, cmd); }
 #if FLAG_V
 void do_K11(char* cmd) { comm.scalar(&LQR_K1_1, cmd); }
 void do_K12(char* cmd) { comm.scalar(&LQR_K1_2, cmd); }
@@ -91,12 +97,15 @@ void do_K21(char* cmd) { comm.scalar(&LQR_K2_1, cmd); }
 void do_K22(char* cmd) { comm.scalar(&LQR_K2_2, cmd); }
 void do_K23(char* cmd) { comm.scalar(&LQR_K2_3, cmd); }
 #else
-void do_vp(char* cmd) { comm.scalar(&motor.PID_velocity.P, cmd); }
-void do_vi(char* cmd) { comm.scalar(&motor.PID_velocity.I, cmd); }
+void do_vp(char* cmd) { comm.scalar(&motor.PID_velocity.P, cmd); EEPROM.writeFloat(12, motor.PID_velocity.P);}
+void do_vi(char* cmd) { comm.scalar(&motor.PID_velocity.I, cmd);EEPROM.writeFloat(16, motor.PID_velocity.I); }
 void do_tv(char* cmd) { comm.scalar(&target_velocity, cmd); }
 void do_K31(char* cmd) { comm.scalar(&LQR_K3_1, cmd); }
 void do_K32(char* cmd) { comm.scalar(&LQR_K3_2, cmd); }
 void do_K33(char* cmd) { comm.scalar(&LQR_K3_3, cmd); }
+void do_K41(char* cmd) { comm.scalar(&LQR_K4_1, cmd); }
+void do_K42(char* cmd) { comm.scalar(&LQR_K4_2, cmd); }
+void do_K43(char* cmd) { comm.scalar(&LQR_K4_3, cmd); }
 #endif
 
 
@@ -106,17 +115,28 @@ void onPacketCallBack(AsyncUDPPacket packet)
   da= (char*)(packet.data());
   Serial.println(da);
   comm.run(da);
-
+  EEPROM.commit();
 //  packet.print("reply data");
 }
 // instantiate the commander
 void setup() {
    Serial.begin(115200);
+   if (!EEPROM.begin(1000)) {
+    Serial.println("Failed to initialise EEPROM");
+    Serial.println("Restarting...");
+    delay(1000);
+    ESP.restart();
+  }
+
    //命令设置
  comm.add("TA",do_TA);
   comm.add("START",do_START);
    comm.add("MOTOR",do_MOTOR);
-    comm.add("SW",do_SW);
+    comm.add("SV",do_SV);
+    comm.add("SA",do_SA);
+    target_angle = EEPROM.readFloat(0);
+swing_up_voltage = EEPROM.readFloat(4);
+swing_up_angle = EEPROM.readFloat(8);
 #if FLAG_V
   comm.add("K11",do_K11);
   comm.add("K12",do_K12);
@@ -131,6 +151,11 @@ void setup() {
   comm.add("K31",do_K31);
   comm.add("K32",do_K32);
   comm.add("K33",do_K33);
+  comm.add("K41",do_K41);
+  comm.add("K42",do_K42);
+  comm.add("K43",do_K43);
+  motor.PID_velocity.P = EEPROM.readFloat(12);
+  motor.PID_velocity.I = EEPROM.readFloat(16);
 #endif
     // kalman mpu6050 init
   Wire.begin(19, 18,400000);// Set I2C frequency to 400kHz
@@ -200,7 +225,7 @@ void setup() {
   motor.controller = MotionControlType::velocity;
     //速度PI环设置
   motor.PID_velocity.P = 0.5;
-  motor.PID_velocity.I = 10;
+  motor.PID_velocity.I = 20;
 #endif
 
 
@@ -258,18 +283,18 @@ void loop() {
       gyroZangle = kalAngleZ;
       
   float pendulum_angle = constrainAngle(fmod(kalAngleZ,120)-target_angle);
-//  float pendulum_angle = constrainAngle((fmod(kalAngleZ * 3, 360.0) / 3.0 - target_angle) / 57.29578);
-#if FLAG_V
-   if (abs(pendulum_angle) < 12) // if angle small enough stabilize 0.5~30°,1.5~90°
+//  FLAG_V为1时使用电压控制，为0时候速度控制
+#if FLAG_V 
+   if (abs(pendulum_angle) < swing_up_angle) // if angle small enough stabilize 0.5~30°,1.5~90°
    {
-     target_voltage = controllerLQR(angle_pid(pendulum_angle), gyroZrate, motor.shaftVelocity());
+     target_voltage = controllerLQR(pendulum_angle, gyroZrate, motor.shaftVelocity());
 //        limit the voltage set to the motor
     if (abs(target_voltage) > motor.voltage_limit * 0.7)
       target_voltage = _sign(target_voltage) * motor.voltage_limit * 0.7;
    }
     else // else do swing-up
     {    // sets 1.5V to the motor in order to swing up
-        target_voltage = -_sign(gyroZrate) * 1.5;
+        target_voltage = -_sign(gyroZrate) * swing_up_voltage;
     }
 
     // set the target voltage to the motor
@@ -283,9 +308,9 @@ void loop() {
     }
 
 #else
-if (abs(pendulum_angle) < 18) // if angle small enough stabilize 0.5~30°,1.5~90°
+if (abs(pendulum_angle) < swing_up_angle) // if angle small enough stabilize 0.5~30°,1.5~90°
    {
-  target_velocity = LQR_K3_1*pendulum_angle+LQR_K3_2*gyroZrate+LQR_K3_3*motor.shaftVelocity();
+   target_velocity = controllerLQR(pendulum_angle, gyroZrate, motor.shaftVelocity());
   if (abs(target_velocity) > 140)
       target_velocity = _sign(target_velocity) * 140;
       motor.controller = MotionControlType::velocity;
@@ -348,7 +373,7 @@ double acc2rotation(double x, double y)
   }
 }
 
-// function constraining the angle in between -pi and pi, in degrees -180 and 180
+// function constraining the angle in between -60~60
 float constrainAngle(float x)
 {
   float a = 0;
@@ -370,7 +395,7 @@ float controllerLQR(float p_angle, float p_vel, float m_vel)
   //  - k = [40, 7, 0.3]
   //  - k = [13.3, 21, 0.3]
   //  - x = [pendulum angle, pendulum velocity, motor velocity]'
-  if (abs(p_angle) > 1.5)
+  if (abs(p_angle) > 2.5)
   {
     last_unstable_time = millis();
     stable = 0;
@@ -382,6 +407,7 @@ float controllerLQR(float p_angle, float p_vel, float m_vel)
 
   //Serial.println(stable);
   float u;
+#if FLAG_V
   if (!stable)
   {
     u = LQR_K1_1 * p_angle + LQR_K1_2 * p_vel + LQR_K1_3 * m_vel;
@@ -391,8 +417,17 @@ float controllerLQR(float p_angle, float p_vel, float m_vel)
     //u = LQR_K1 * p_angle + LQR_K2 * p_vel + LQR_K3 * m_vel;
     u = LQR_K2_1 * p_angle + LQR_K2_2 * p_vel + LQR_K2_3 * m_vel;
   }
-
-
+#else
+  if (!stable)
+  {
+    u = LQR_K3_1 * p_angle + LQR_K3_2 * p_vel + LQR_K3_3 * m_vel;
+  }
+  else
+  {
+    //u = LQR_K1 * p_angle + LQR_K2 * p_vel + LQR_K3 * m_vel;
+    u = LQR_K4_1 * p_angle + LQR_K4_2 * p_vel + LQR_K4_3 * m_vel;
+  }
+#endif
   return u;
 }
 void wifi_print(char * s,double num)

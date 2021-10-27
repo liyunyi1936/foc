@@ -9,3 +9,6 @@
 
 问题4：强制类型转换(const unsigned char*)不能直接使用print输出
 解决：atoi((char*)(packet.data())) //使用(char*) 进行强制类型转换
+
+问题5: udp发送数据时会出现乱码
+解决：字符数组末尾需要添加'\0'作为结束符

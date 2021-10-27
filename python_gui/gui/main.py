@@ -118,6 +118,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             recv_data = recv_data[:-1]
             recv_data = recv_data.split(',')
             """处理接受的信息"""
+            # recv_data = [40,50,60]
             for i, data in enumerate(recv_data):
                 self.re_item.append(''.join(re.split(r'[^A-Za-z]', data)))
             print(self.re_item)
