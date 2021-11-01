@@ -75,9 +75,20 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.plotWidget.addItem(self.signalPlots[-1])
             # is plotted flag
             self.signalPlotFlags.append(True)
-
+            # add callback
+            checkBox.stateChanged.connect(self.signalPlotFlagUpdate)
         self.gridLayout.addWidget(self.plotWidget)
         self.tool_layout.addWidget(self.controlPlotWidget)
+    # checkbox
+    def signalPlotFlagUpdate(self):
+        self.controlPlotWidget.updateMonitorVariables()
+        for i, (checkBox, plotFlag) in enumerate(zip(self.controlPlotWidget.signalCheckBox, self.signalPlotFlags)):
+            if checkBox.isChecked() and (not plotFlag):
+                self.signalPlotFlags[i] = True
+                self.plotWidget.addItem( self.signalPlots[i] )
+            elif (not checkBox.isChecked()) and plotFlag:
+                self.signalPlotFlags[i]  = False
+                self.plotWidget.removeItem( self.signalPlots[i] )
     # 滑条绑定
     def horizontalSlider_1_valueChanged(self):
         value = self.horizontalSlider_1.value()
@@ -105,31 +116,39 @@ class MyWindow(QMainWindow, Ui_MainWindow):
     def wifi_command_pushButton_3_clicked(self):
         self.udp.send_message(self.wifi_command_lineEdit_3.text())
     def wifi_config_pushButton_clicked(self):
-        try:
-            # self.re_item = ['k','g','l','t']
-            # self.plot_init()
+        if self.wifi_open_flag == 0:
+            try:
+                self.re_item = ['k','g','l','t']
+                self.plot_init()
 
-            print(self.wifi_IP_lineEdit.text(),type(self.wifi_IP_lineEdit.text()))
-            self.udp.udpClientSocket.bind((self.wifi_IP_lineEdit.text(), 2333))
-            # 第一次接受数据，用于判断项目数，
-            self.udp.send_message("START")
-            recv_data = self.udp.udpClientSocket.recv(1024)
-            recv_data = recv_data.decode('utf-8')
-            recv_data = recv_data[:-1]
-            recv_data = recv_data.split(',')
-            """处理接受的信息"""
-            # recv_data = [40,50,60]
-            for i, data in enumerate(recv_data):
-                self.re_item.append(''.join(re.split(r'[^A-Za-z]', data)))
-            print(self.re_item)
-            # 图表初始化
-            self.plot_init()
-            t1 = threading.Thread(target=self.udp_recv)
-            t1.start()
-            self.wifi_open_flag = 1
-        except Exception as e:
-            print(e)
-            QMessageBox.critical(self, "错误", '该请求的地址无效')
+                # print(self.wifi_IP_lineEdit.text(),type(self.wifi_IP_lineEdit.text()))
+                # self.udp.udpClientSocket.bind((self.wifi_IP_lineEdit.text(), 2333))
+                # # 第一次接受数据，用于判断项目数，
+                # self.udp.send_message("START")
+                # recv_data = self.udp.udpClientSocket.recv(1024)
+                # recv_data = recv_data.decode('utf-8')
+                # recv_data = recv_data[:-1]
+                # recv_data = recv_data.split(',')
+                # """处理接受的信息"""
+                # # recv_data = [40,50,60]
+                # for i, data in enumerate(recv_data):
+                #     self.re_item.append(''.join(re.split(r'[^A-Za-z]', data)))
+                # print(self.re_item)
+                # # 图表初始化
+                # self.plot_init()
+                # t1 = threading.Thread(target=self.udp_recv)
+                # t1.start()
+                self.wifi_open_flag = 1
+                self.wifi_config_pushButton.setText("断开连接")
+                self.wifi_config_pushButton.setStyleSheet("QPushButton{color:rgb(255,0,0,255);}")
+            except Exception as e:
+                print(e)
+                QMessageBox.critical(self, "错误", '该请求的地址无效')
+        else:
+            self.wifi_open_flag = 0
+            self.tool_layout.itemAt(0).widget().deleteLater()
+            self.gridLayout.itemAt(0).widget().deleteLater()
+            self.wifi_config_pushButton.setText("设置")
     def udp_recv(self):
         while self.close_flag:
             recv_data = self.udp.udpClientSocket.recv(1024)
@@ -139,21 +158,25 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             """处理接受的信息"""
             # print(recv_data)
             for i, data in enumerate(recv_data):
-                self.re_item.append(''.join(re.split(r'[^A-Za-z]', data)))
-                data = data.replace(self.re_item[i],'')
+                if self.signalPlotFlags[i]:
+                    self.re_item.append(''.join(re.split(r'[^A-Za-z]', data)))
+                    data = data.replace(self.re_item[i],'')
 
-                self.signalDataArrays[i] = np.roll(self.signalDataArrays[i], -1)
-                self.signalDataArrays[i][-1] = data
-                pass
+                    self.signalDataArrays[i] = np.roll(self.signalDataArrays[i], -1)
+                    self.signalDataArrays[i][-1] = data
+
     def update_plot(self):
         if self.wifi_recv_flag:
             for i, plotFlag in enumerate(self.signalPlotFlags):
-                self.signalPlots[i].setData(self.timeArray, self.signalDataArrays[i])
-                self.signalPlots[i].updateItems()
-                self.signalPlots[i].sigPlotChanged.emit(self.signalPlots[i])
+                if plotFlag:
+                    self.signalPlots[i].setData(self.timeArray, self.signalDataArrays[i])
+                    self.signalPlots[i].updateItems()
+                    self.signalPlots[i].sigPlotChanged.emit(self.signalPlots[i])
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+        print("关闭")
         self.close_flag = 0
+        self.udpClientSocket.close()
 
 
 class ControlPlotPanel(QtWidgets.QWidget):
