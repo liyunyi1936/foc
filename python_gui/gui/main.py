@@ -17,9 +17,10 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         super(MyWindow, self).__init__(parent)
         self.setupUi(self)
         # 变量初始化
-        self.variable_init()
+        self.wifi_open_flag = 0
+        # self.variable_init()
         # 设置实例
-        self.CreateItems()
+        # self.CreateItems()
         # 设置信号与槽
         self.CreateSignalSlot()
 
@@ -43,12 +44,8 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.udp = udp()
         # self.wifi_IP_lineEdit.setText(self.udp.user_ip)
     def variable_init(self):
-        # 图表数据变量
-        self.wifi_open_flag = 0
+        # wifi变量
         self.wifi_recv_flag = 0
-        self.udp_data = 0
-        self.target_velocity = 0
-        self.now_velocity = 0
         self.close_flag = 1
         self.re_item = []
     def plot_init(self):
@@ -81,7 +78,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.tool_layout.addWidget(self.controlPlotWidget)
     # checkbox
     def signalPlotFlagUpdate(self):
-        self.controlPlotWidget.updateMonitorVariables()
         for i, (checkBox, plotFlag) in enumerate(zip(self.controlPlotWidget.signalCheckBox, self.signalPlotFlags)):
             if checkBox.isChecked() and (not plotFlag):
                 self.signalPlotFlags[i] = True
@@ -118,37 +114,42 @@ class MyWindow(QMainWindow, Ui_MainWindow):
     def wifi_config_pushButton_clicked(self):
         if self.wifi_open_flag == 0:
             try:
-                self.re_item = ['k','g','l','t']
-                self.plot_init()
-
-                # print(self.wifi_IP_lineEdit.text(),type(self.wifi_IP_lineEdit.text()))
-                # self.udp.udpClientSocket.bind((self.wifi_IP_lineEdit.text(), 2333))
-                # # 第一次接受数据，用于判断项目数，
-                # self.udp.send_message("START")
-                # recv_data = self.udp.udpClientSocket.recv(1024)
-                # recv_data = recv_data.decode('utf-8')
-                # recv_data = recv_data[:-1]
-                # recv_data = recv_data.split(',')
-                # """处理接受的信息"""
-                # # recv_data = [40,50,60]
-                # for i, data in enumerate(recv_data):
-                #     self.re_item.append(''.join(re.split(r'[^A-Za-z]', data)))
-                # print(self.re_item)
-                # # 图表初始化
+                # self.re_item = ['k','g','l','t']
                 # self.plot_init()
-                # t1 = threading.Thread(target=self.udp_recv)
-                # t1.start()
+                self.variable_init()
+                self.CreateItems()
+                print(self.wifi_IP_lineEdit.text(),type(self.wifi_IP_lineEdit.text()))
+                self.udp.udpClientSocket.bind((self.wifi_IP_lineEdit.text(), 2333))
+                self.udp.udpClientSocket.settimeout(1)
+                # 第一次接受数据，用于判断项目数，
+                self.udp.send_message("START")
+                recv_data = self.udp.udpClientSocket.recv(1024)
+                recv_data = recv_data.decode('utf-8')
+                recv_data = recv_data[:-1]
+                recv_data = recv_data.split(',')
+                """处理接受的信息"""
+                # recv_data = [40,50,60]
+                for i, data in enumerate(recv_data):
+                    self.re_item.append(''.join(re.split(r'[^A-Za-z]', data)))
+                print(self.re_item)
+                # 图表初始化
+                self.plot_init()
+                t1 = threading.Thread(target=self.udp_recv)
+                t1.start()
                 self.wifi_open_flag = 1
                 self.wifi_config_pushButton.setText("断开连接")
                 self.wifi_config_pushButton.setStyleSheet("QPushButton{color:rgb(255,0,0,255);}")
             except Exception as e:
                 print(e)
-                QMessageBox.critical(self, "错误", '该请求的地址无效')
+                QMessageBox.critical(self, "错误", str(e))
         else:
+            self.udp.send_message("START")
+            del self.udp
             self.wifi_open_flag = 0
             self.tool_layout.itemAt(0).widget().deleteLater()
             self.gridLayout.itemAt(0).widget().deleteLater()
             self.wifi_config_pushButton.setText("设置")
+            self.variable_init()
     def udp_recv(self):
         while self.close_flag:
             recv_data = self.udp.udpClientSocket.recv(1024)
@@ -176,7 +177,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         print("关闭")
         self.close_flag = 0
-        self.udpClientSocket.close()
+        self.udp.udpClientSocket.close()
 
 
 class ControlPlotPanel(QtWidgets.QWidget):
