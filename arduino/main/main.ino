@@ -13,10 +13,11 @@ AS5600霍尔传感器 SDA-23 SCL-5  MPU6050六轴传感器 SDA-19 SCL-18
 #include "Command.h"
 #include <WiFi.h>
 #include <AsyncUDP.h> //引用以使用异步UDP
-#include <Kalman.h> // Source: https://github.com/TKJElectronics/KalmanFilter
+#include "Kalman.h" // Source: https://github.com/TKJElectronics/KalmanFilter
 #include "EEPROM.h"
 Kalman kalmanZ;
 #define gyroZ_OFF -0.19
+#define FLAG_V 0
 /* ----IMU Data---- */
 
 double accX, accY, accZ;
@@ -47,7 +48,7 @@ void wifi_print(char * s,double num);
 MagneticSensorI2C sensor = MagneticSensorI2C(AS5600_I2C);
 TwoWire I2Ctwo = TwoWire(1);
 LowPassFilter lpf_throttle{0.00};
-#define FLAG_V 0
+
 //倒立摆参数
 float LQR_K1_1 = 4;  //摇摆到平衡
 float LQR_K1_2 = 1.5;   //
@@ -73,6 +74,10 @@ float target_angle = 89.3;
 float target_voltage = 0;
 float swing_up_voltage = 1.8;
 float swing_up_angle = 18;
+float v_i_1 = 20;
+float v_p_1 = 0.5;
+float v_i_2 = 10;
+float v_p_2 = 0.2;
 //命令设置
 Command comm;
 bool Motor_enable_flag = 0;
@@ -97,8 +102,10 @@ void do_K21(char* cmd) { comm.scalar(&LQR_K2_1, cmd); }
 void do_K22(char* cmd) { comm.scalar(&LQR_K2_2, cmd); }
 void do_K23(char* cmd) { comm.scalar(&LQR_K2_3, cmd); }
 #else
-void do_vp(char* cmd) { comm.scalar(&motor.PID_velocity.P, cmd); EEPROM.writeFloat(12, motor.PID_velocity.P);}
-void do_vi(char* cmd) { comm.scalar(&motor.PID_velocity.I, cmd);EEPROM.writeFloat(16, motor.PID_velocity.I); }
+void do_vp1(char* cmd) { comm.scalar(&v_p_1, cmd); EEPROM.writeFloat(12, v_p_1);}
+void do_vi1(char* cmd) { comm.scalar(&v_i_1, cmd);EEPROM.writeFloat(16, v_p_1); }
+void do_vp2(char* cmd) { comm.scalar(&v_p_2, cmd); EEPROM.writeFloat(20, v_p_2);}
+void do_vi2(char* cmd) { comm.scalar(&v_i_2, cmd);EEPROM.writeFloat(24, v_i_2); }
 void do_tv(char* cmd) { comm.scalar(&target_velocity, cmd); }
 void do_K31(char* cmd) { comm.scalar(&LQR_K3_1, cmd); }
 void do_K32(char* cmd) { comm.scalar(&LQR_K3_2, cmd); }
@@ -145,8 +152,10 @@ swing_up_angle = EEPROM.readFloat(8);
   comm.add("K22",do_K22);
   comm.add("K23",do_K23);
 #else
-  comm.add("VP",do_vp);
-  comm.add("VI",do_vi);
+  comm.add("VP1",do_vp1);
+  comm.add("VI1",do_vi1);
+  comm.add("VP2",do_vp2);
+  comm.add("VI2",do_vi2);
   comm.add("TV",do_tv);
   comm.add("K31",do_K31);
   comm.add("K32",do_K32);
@@ -154,8 +163,12 @@ swing_up_angle = EEPROM.readFloat(8);
   comm.add("K41",do_K41);
   comm.add("K42",do_K42);
   comm.add("K43",do_K43);
-  motor.PID_velocity.P = EEPROM.readFloat(12);
-  motor.PID_velocity.I = EEPROM.readFloat(16);
+  v_p_1 = EEPROM.readFloat(12);
+  v_i_1 = EEPROM.readFloat(16);
+  v_p_2 = EEPROM.readFloat(20);
+  v_i_2 = EEPROM.readFloat(24);
+  motor.PID_velocity.P = v_p_1;
+  motor.PID_velocity.I = v_i_1;
 #endif
     // kalman mpu6050 init
   Wire.begin(19, 18,400000);// Set I2C frequency to 400kHz
@@ -420,10 +433,14 @@ float controllerLQR(float p_angle, float p_vel, float m_vel)
 #else
   if (!stable)
   {
+    motor.PID_velocity.P = v_p_1;
+    motor.PID_velocity.I = v_i_1;
     u = LQR_K3_1 * p_angle + LQR_K3_2 * p_vel + LQR_K3_3 * m_vel;
   }
   else
   {
+    motor.PID_velocity.P = v_p_2;
+    motor.PID_velocity.I = v_i_2;
     //u = LQR_K1 * p_angle + LQR_K2 * p_vel + LQR_K3 * m_vel;
     u = LQR_K4_1 * p_angle + LQR_K4_2 * p_vel + LQR_K4_3 * m_vel;
   }
