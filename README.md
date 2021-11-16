@@ -2,15 +2,23 @@
 
 #### 介绍
 **在B站[“基于LQR控制器的自平衡莱洛三角形”](https://www.bilibili.com/video/BV19v411n7mN)基础上添加了充电模块**
-主控芯片使用ESP32，并配置了调参上位机，可以很方便的通过wifi无线调参。无刷控制使用灯哥开源FOC。制作出一个方便复刻的自平衡莱洛三角形，在桌面上作为一个摆件还是非常不错的[展示视频]()
+主控芯片使用ESP32，并配置了调参上位机，可以很方便的通过wifi无线调参。无刷控制使用灯哥开源FOC。制作出一个方便复刻的自平衡莱洛三角形，在桌面上作为一个摆件还是非常不错的
+[展示视频]()
 
+![Image text](image/show.png)
+
+左：使用灯哥开源FOC2.0板测试
+
+中：13*13cm立创紫PCB
+
+右：10*10cm最终版本
 #### 1 软件架构
 在原作者的自平衡控制**电压**算法上进行修改，将电压控制改为**速度**控制。使对模型的控制在物理上更加容易理解。并且代码的调参都可以通过连接ESP32的wifi调整。具体特性如下：
 
 - **基于 Arduino**：运行在 ESP32 Arduino 上
 - **控制模式丰富**：电压控制和速度控制
 
-![Image text](image/gui_main.jpg)
+![Image text](image/gui.gif)
 #### 2 硬件特性
 
 | 说明             | 参数     |
@@ -53,8 +61,9 @@ LaserMaker绘制的plt在**莱洛三角结构**文件夹内
 
 感谢嘉立创的PCB制板，使DIY电路制作变得非常便利
 
-[莱洛三角形PCB](https://lceda.cn/45coll/zi-ping-heng-di-lai-luo-san-jiao_10-10-ban-ben)
-[动量轮]()
+[莱洛三角形PCB](https://oshwhub.com/45coll/zi-ping-heng-di-lai-luo-san-jiao_10-10-ban-ben)
+
+[动量轮](https://oshwhub.com/45coll/lai-luo-san-jiao-dong-liang-lun)
 
 具体需要购买的物品在**物料清单.xlsx**中
 
