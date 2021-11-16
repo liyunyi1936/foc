@@ -58,9 +58,9 @@ float LQR_K2_1 = 3.49;   //平衡态
 float LQR_K2_2 = 0.26;   //
 float LQR_K2_3 = 0.15; //
 
-float LQR_K3_1 = 5.25;   //摇摆到平衡
-float LQR_K3_2 = 3.18;   //
-float LQR_K3_3 = 1.86; //
+float LQR_K3_1 = 10;   //摇摆到平衡
+float LQR_K3_2 = 1.7;   //
+float LQR_K3_3 = 1.75; //
 
 float LQR_K4_1 = 2.4;   //摇摆到平衡
 float LQR_K4_2 = 1.5;   //
@@ -73,7 +73,7 @@ float target_velocity = 0;
 float target_angle = 89.3;
 float target_voltage = 0;
 float swing_up_voltage = 1.8;
-float swing_up_angle = 18;
+float swing_up_angle = 20;
 float v_i_1 = 20;
 float v_p_1 = 0.5;
 float v_i_2 = 10;
@@ -408,13 +408,19 @@ float controllerLQR(float p_angle, float p_vel, float m_vel)
   //  - k = [40, 7, 0.3]
   //  - k = [13.3, 21, 0.3]
   //  - x = [pendulum angle, pendulum velocity, motor velocity]'
+
   if (abs(p_angle) > 2.5)
   {
     last_unstable_time = millis();
-    stable = 0;
+    if(stable)
+    {
+      target_angle = EEPROM.readFloat(0);
+      stable = 0;
+    }
   }
-  if ((millis() - last_unstable_time) > 1000)
+  if ((millis() - last_unstable_time) > 1000&&!stable)
   {
+    target_angle = target_angle+p_angle;
     stable = 1;
   }
 
