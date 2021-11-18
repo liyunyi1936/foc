@@ -25,14 +25,16 @@
 | ---------------- |---------------------- |
 | 莱洛三角形尺寸             | 100*100 mm  |
 |动量轮尺寸|80*80 mm|
+|电池*3 |厚x长x宽:7.9mmx25mmx40mm|
 | 输入电压         | 3.7v锂电池*3|
 |充电电压| 5V 从Type-C口输入|
 |充电芯片CS5095|5V输入,最大1.2A充电电流|
 |串口芯片CH340C|需要打开开关才能下载|
-| 主控             | ESP-WROOM-32           |
+| 主控芯片             | ESP-WROOM-32           |
 |电机驱动芯片L6234PD|引脚:32, 33, 25, 22; 22为enable|
 |  AS5600 编码器 |SDA-23 SCL-5 |
 | MPU6050六轴传感器  | SDA-19 SCL-18         |
+
 
 #### 3 使用说明
 
@@ -68,11 +70,11 @@ LaserMaker绘制的plt在**莱洛三角结构**文件夹内
 具体需要购买的物品在**物料清单.xlsx**中
 
 #### 5 Ctrl+C +V（参考）
-Arduino上的控制算法抄的是原作者的LQR，无刷电机控制是抄灯哥开源的。电机控制引脚定义与传感器定义和灯哥开源FOC控制板2.0版完全一样。
+Arduino上的控制算法是原作者的LQR，无刷电机控制是灯哥开源FOC。电机控制引脚定义与传感器定义和灯哥开源FOC控制板2.0版一样。
 
-Python的GUI是抄SimpleFOC的SimpleFOCStudio。
+Python的GUI是SimpleFOC的SimpleFOCStudio。
 
-充电电路完全抄的是立创广场开源的CS5095充电方案。
+充电电路是立创广场开源的CS5095充电方案。
 1.  原作者：基于LQR控制器的自平衡莱洛三角形[BV19v411n7mN](https://www.bilibili.com/video/BV19v411n7mN)
 2.  灯哥开源FOC [https://gitee.com/ream_d/Deng-s-foc-controller](https://gitee.com/ream_d/Deng-s-foc-controller)
 3.  充电芯片电路[https://oshwhub.com/Aknice/cs5095e-san-jie-li-dian-chi-sheng-ya-chong-dian-dian-lu](https://oshwhub.com/Aknice/cs5095e-san-jie-li-dian-chi-sheng-ya-chong-dian-dian-lu)
