@@ -38,8 +38,24 @@
 
 #### 3 使用说明
 
-1.  前往灯哥开源[FOCgit](https://gitee.com/ream_d/Deng-s-foc-controller)下载Arduino开发环境（~~也可自行下载Arduino并安装SimpleFOC~~）并打开本项目内的Arduino内的main，烧录程序到ESP32。
-2.  打开本项目内的python_gui内的FOC_gui.exe并连接上WIFI：ESP32。点击设置开始调参。
+1. 前往灯哥开源[FOCgit](https://gitee.com/ream_d/Deng-s-foc-controller)下载Arduino开发环境（~~也可自行下载Arduino并安装SimpleFOC~~）并打开本项目内的Arduino内的main，烧录程序到ESP32。
+2. 打开本项目内的`python_gui`内的`可执行文件_main`内的**main.exe**并连接上WIFI：ESP32。点击设置开始调参。
+
+3. 第一次打开的话还请先输入一些初始值到eeprom中：
+
+|   参数命令           | 说明    |
+| ---------------- |---------------------- |
+|TA89.3|角度|
+|SV1.8|摇摆电压|
+|SA20|摇摆角度|
+|VI120|平衡前FOC速度环的I为20|
+|VP10.5|平衡前FOC速度环的P为0.5|
+|VI210|平衡后FOC速度环的I为10|
+|VP20.2|平衡后FOC速度环的P为0.2|
+
+![调参](image/tiaocan.gif)
+
+4. K值可以用滑块调整，但是调整到合适值之后需要自行在Arduino的main中修改再烧录一次
 
 比如让平衡角度为90度，则输入：TA90，并且会存入eeprom的位置0中 注：wifi发送**命令不能过快**，因为每次都会保存进eeprom，K参数没有保存到EEPROM所以可以使用滑条调整。
 
