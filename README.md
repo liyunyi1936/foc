@@ -41,7 +41,11 @@
 1. 前往灯哥开源[FOCgit](https://gitee.com/ream_d/Deng-s-foc-controller)下载Arduino开发环境（~~也可自行下载Arduino并安装SimpleFOC~~）并打开本项目内的Arduino内的main，烧录程序到ESP32。
 2. 打开本项目内的`python_gui`内的`可执行文件_main`内的**main.exe**并连接上WIFI：ESP32。点击设置开始调参。
 
-3. 第一次打开的话还请先输入一些初始值到eeprom中：
+3. 第一次使用需要把在初始化中读取eeprom的数据给注释掉。因为在程序初始的时候eeprom是没有数据的，就导致读取时候是NAN。然后wifi发送NAN会有问题，就无法通过上位机发数据给esp32了。
+
+![Image text](image/frist.png)
+
+4. 输入一些初始值到eeprom中：
 
 |   参数命令           | 说明    |
 | ---------------- |---------------------- |
@@ -55,7 +59,7 @@
 
 ![调参](image/tiaocan.gif)
 
-4. K值可以用滑块调整，但是调整到合适值之后需要自行在Arduino的main中修改再烧录一次
+5. K值可以用滑块调整，但是调整到合适值之后需要自行在Arduino的main中修改再烧录一次
 
 比如让平衡角度为90度，则输入：TA90，并且会存入eeprom的位置0中 注：wifi发送**命令不能过快**，因为每次都会保存进eeprom，K参数没有保存到EEPROM所以可以使用滑条调整。
 
