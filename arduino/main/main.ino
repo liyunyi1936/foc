@@ -103,7 +103,7 @@ void do_K22(char* cmd) { comm.scalar(&LQR_K2_2, cmd); }
 void do_K23(char* cmd) { comm.scalar(&LQR_K2_3, cmd); }
 #else
 void do_vp1(char* cmd) { comm.scalar(&v_p_1, cmd); EEPROM.writeFloat(12, v_p_1);}
-void do_vi1(char* cmd) { comm.scalar(&v_i_1, cmd);EEPROM.writeFloat(16, v_p_1); }
+void do_vi1(char* cmd) { comm.scalar(&v_i_1, cmd);EEPROM.writeFloat(16, v_i_1); }
 void do_vp2(char* cmd) { comm.scalar(&v_p_2, cmd); EEPROM.writeFloat(20, v_p_2);}
 void do_vi2(char* cmd) { comm.scalar(&v_i_2, cmd);EEPROM.writeFloat(24, v_i_2); }
 void do_tv(char* cmd) { comm.scalar(&target_velocity, cmd); }
@@ -134,24 +134,47 @@ void setup() {
     delay(1000);
     ESP.restart();
   }
-
+// eeprom 读取
+float nan = EEPROM.readFloat(0);
+if(isnan(nan))
+  {
+      Serial.println("frist write");
+      EEPROM.writeFloat(0, target_angle); 
+      EEPROM.writeFloat(4, swing_up_voltage);
+      EEPROM.writeFloat(8, swing_up_angle);
+      EEPROM.writeFloat(12, v_p_1);
+      EEPROM.writeFloat(16, v_i_1);
+      EEPROM.writeFloat(20, v_p_2);
+      EEPROM.writeFloat(24, v_i_2); 
+      EEPROM.commit();
+  }
+  else
+  {
+     target_angle = EEPROM.readFloat(0);
+  swing_up_voltage = EEPROM.readFloat(4);
+  swing_up_angle = EEPROM.readFloat(8);  
+    v_p_1 = EEPROM.readFloat(12);
+  v_i_1 = EEPROM.readFloat(16);
+  v_p_2 = EEPROM.readFloat(20);
+  v_i_2 = EEPROM.readFloat(24);
+  motor.PID_velocity.P = v_p_1;
+  motor.PID_velocity.I = v_i_1;
+  }
    //命令设置
  comm.add("TA",do_TA);
-  comm.add("START",do_START);
-   comm.add("MOTOR",do_MOTOR);
-    comm.add("SV",do_SV);
-    comm.add("SA",do_SA);
-    target_angle = EEPROM.readFloat(0);
-swing_up_voltage = EEPROM.readFloat(4);
-swing_up_angle = EEPROM.readFloat(8);
-#if FLAG_V
+ comm.add("START",do_START);
+ comm.add("MOTOR",do_MOTOR);
+ comm.add("SV",do_SV);
+ comm.add("SA",do_SA);
+ 
+#if FLAG_V //电压模式
   comm.add("K11",do_K11);
   comm.add("K12",do_K12);
   comm.add("K13",do_K13);
   comm.add("K21",do_K21);
   comm.add("K22",do_K22);
   comm.add("K23",do_K23);
-#else
+#else //速度模式
   comm.add("VP1",do_vp1);
   comm.add("VI1",do_vi1);
   comm.add("VP2",do_vp2);
@@ -163,12 +186,6 @@ swing_up_angle = EEPROM.readFloat(8);
   comm.add("K41",do_K41);
   comm.add("K42",do_K42);
   comm.add("K43",do_K43);
-  v_p_1 = EEPROM.readFloat(12);
-  v_i_1 = EEPROM.readFloat(16);
-  v_p_2 = EEPROM.readFloat(20);
-  v_i_2 = EEPROM.readFloat(24);
-  motor.PID_velocity.P = v_p_1;
-  motor.PID_velocity.I = v_i_1;
 #endif
     // kalman mpu6050 init
   Wire.begin(19, 18,400000);// Set I2C frequency to 400kHz
@@ -337,7 +354,7 @@ if (abs(pendulum_angle) < swing_up_angle) // if angle small enough stabilize 0.5
     }
 
 #endif
-#if 0
+#if 1
 
 //Serial.print(gyroZangle);Serial.print("\t");
 Serial.print(kalAngleZ);Serial.print("\t");
