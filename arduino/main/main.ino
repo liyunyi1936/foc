@@ -139,13 +139,13 @@ float nan = EEPROM.readFloat(0);
 if(isnan(nan))
   {
       Serial.println("frist write");
-      EEPROM.writeFloat(0, target_angle); 
-      EEPROM.writeFloat(4, swing_up_voltage);
-      EEPROM.writeFloat(8, swing_up_angle);
-      EEPROM.writeFloat(12, v_p_1);
-      EEPROM.writeFloat(16, v_i_1);
-      EEPROM.writeFloat(20, v_p_2);
-      EEPROM.writeFloat(24, v_i_2); 
+      EEPROM.writeFloat(0, target_angle);       delay(10);
+      EEPROM.writeFloat(4, swing_up_voltage);      delay(10);
+      EEPROM.writeFloat(8, swing_up_angle);      delay(10);
+      EEPROM.writeFloat(12, v_p_1);      delay(10);
+      EEPROM.writeFloat(16, v_i_1);      delay(10);
+      EEPROM.writeFloat(20, v_p_2);      delay(10);
+      EEPROM.writeFloat(24, v_i_2);       delay(10);
       EEPROM.commit();
   }
   else

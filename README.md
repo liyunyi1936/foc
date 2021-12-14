@@ -32,18 +32,22 @@
 |串口芯片CH340C|需要打开开关才能下载|
 | 主控芯片             | ESP-WROOM-32           |
 |电机驱动芯片L6234PD|引脚:32, 33, 25, 22; 22为enable|
-|  AS5600 编码器 |SDA-23 SCL-5 |
+|  AS5600 编码器 |SDA-23 SCL-5 芯片要离磁铁有2mm以上高度|
 | MPU6050六轴传感器  | SDA-19 SCL-18         |
 
 
 #### 3 使用说明
 
-1. 前往灯哥开源[FOCgit](https://gitee.com/ream_d/Deng-s-foc-controller)下载Arduino开发环境（~~也可自行下载Arduino并安装SimpleFOC~~）并打开本项目内的Arduino内的main，烧录程序到ESP32。
-2. 打开本项目内的`python_gui`内的`可执行文件_main`内的**main.exe**并连接上WIFI：ESP32。点击设置开始调参。
+1. 前往灯哥开源[FOCgit](https://gitee.com/ream_d/Deng-s-foc-controller)下载Arduino开发环境（~~也可自行下载Arduino并安装SimpleFOC~~）并打开本项目内的Arduino内的main。
+2. 烧录程序到ESP32：选择工具-开发板-esp32 Arduino-ESP32 Dev module，然后连接USB口选择对应的com口，编译上传。
+   1. 如无法正常编译
+      1. 情况1：wifi库重复，删除文件夹Arduino\libraries内的wifi文件夹。
+      2. 情况2：可能与原有arduino冲突，请卸载原有的arduino。
+3. 打开本项目内的`python_gui`内的`可执行文件_main`内的**main.exe**并连接上WIFI：ESP32。点击设置开始调参。
 ![Image text](image/tiaocan.gif)
-3. K值可以用滑块调整，拖动滑块就会发送参数命令，但是调整到合适值之后需要自行在Arduino的main中修改再烧录一次
+4. K值可以用滑块调整，拖动滑块就会发送参数命令，但是调整到合适值之后需要自行在Arduino的main中修改再烧录一次
 
-4. 滑条：最左边输入框为滑块下限，右边是滑块上限，滑条等分成**200**份，命令是**字符串**，滑动滑块发送**字符串** + **数值**
+5. 滑条：最左边输入框为滑块下限，右边是滑块上限，滑条等分成**200**份，命令是**字符串**，滑动滑块发送**字符串** + **数值**
 
 比如让平衡角度为90度，则输入：TA90，并且会存入eeprom的位置0中 注：wifi发送**命令不能过快**，因为每次都会保存进eeprom，K参数没有保存到EEPROM所以可以使用滑条调整。
 
@@ -105,13 +109,13 @@ Python的GUI是SimpleFOC的SimpleFOCStudio。
 
 2. GUI上位机可以在其他wifi项目中可以继续使用，用来调参还是很方便。
 
-##### 7 未解之谜
+#### 7 未解之谜
 
 问题1：在传感器读取当前角度pitch在0和360来回切换时候，卡尔曼滤波值会慢慢变化，得到的值无法反映正确的当前角度。导致有一个面无法摇摆平衡。
 
 问题2：摇摆到平衡态时，参数不太好时，可能会摇摆过头，或者一直左右摇摆不能到平衡态。就算调好参数也会偶尔发生摇摆过头现象。
 
-##### 8 交流Q群
+#### 8 交流Q群
 
 45coll电子交流QQ群：**824113552**
 

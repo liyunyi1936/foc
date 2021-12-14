@@ -34,6 +34,13 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.wifi_command_pushButton_1.clicked.connect(self.wifi_command_pushButton_1_clicked)
         self.wifi_command_pushButton_2.clicked.connect(self.wifi_command_pushButton_2_clicked)
         self.wifi_command_pushButton_3.clicked.connect(self.wifi_command_pushButton_3_clicked)
+        self.TA_pushButton.clicked.connect(self.TA_pushButton_clicked)
+        self.SA_pushButton.clicked.connect(self.SA_pushButton_clicked)
+        self.SV_pushButton.clicked.connect(self.SV_pushButton_clicked)
+        self.VP1_pushButton.clicked.connect(self.VP1_pushButton_clicked)
+        self.VI1_pushButton.clicked.connect(self.VI1_pushButton_clicked)
+        self.VP2_pushButton.clicked.connect(self.VP2_pushButton_clicked)
+        self.VI2_pushButton.clicked.connect(self.VI2_pushButton_clicked)
     # 设置实例
     def CreateItems(self):
         # 定时器-绘图刷新
@@ -111,11 +118,25 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.udp.send_message(self.wifi_command_lineEdit_2.text())
     def wifi_command_pushButton_3_clicked(self):
         self.udp.send_message(self.wifi_command_lineEdit_3.text())
+    def TA_pushButton_clicked(self):
+        self.udp.send_message("TA"+self.TA_doubleSpinBox.text())
+    def SA_pushButton_clicked(self):
+        self.udp.send_message("SA"+self.SA_doubleSpinBox.text())
+    def SV_pushButton_clicked(self):
+        self.udp.send_message("SV"+self.SV_doubleSpinBox.text())
+    def VP1_pushButton_clicked(self):
+        self.udp.send_message("VP1"+self.VP1_doubleSpinBox.text())
+    def VI1_pushButton_clicked(self):
+        self.udp.send_message("VI1"+self.VI1_doubleSpinBox.text())
+    def VP2_pushButton_clicked(self):
+        self.udp.send_message("VP2"+self.VP2_doubleSpinBox.text())
+    def VI2_pushButton_clicked(self):
+        self.udp.send_message("VI2"+self.VI2_doubleSpinBox.text())
+
+    # WIFI设置点击后判断有无接收到esp32发来的数据
     def wifi_config_pushButton_clicked(self):
         if self.wifi_open_flag == 0:
             try:
-                # self.re_item = ['k','g','l','t']
-                # self.plot_init()
                 self.variable_init()
                 self.CreateItems()
                 print(self.wifi_IP_lineEdit.text(),type(self.wifi_IP_lineEdit.text()))
@@ -128,7 +149,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
                 recv_data = recv_data[:-1]
                 recv_data = recv_data.split(',')
                 """处理接受的信息"""
-                # recv_data = [40,50,60]
                 for i, data in enumerate(recv_data):
                     self.re_item.append(''.join(re.split(r'[^A-Za-z]', data)))
                 print(self.re_item)
