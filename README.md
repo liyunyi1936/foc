@@ -3,7 +3,7 @@
 #### 介绍
 **在B站[“基于LQR控制器的自平衡莱洛三角形”](https://www.bilibili.com/video/BV19v411n7mN)基础上添加了充电模块**
 主控芯片使用ESP32，并配置了调参上位机，可以很方便的通过wifi无线调参。无刷控制使用灯哥开源FOC。制作出一个方便复刻的自平衡莱洛三角形，在桌面上作为一个摆件还是非常不错的
-[展示视频]()
+[展示视频](https://www.bilibili.com/video/BV1b3411x7za)
 
 ![Image text](image/show.png)
 
