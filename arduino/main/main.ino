@@ -67,7 +67,7 @@ float LQR_K4_2 = 1.5;   //
 float LQR_K4_3 = 1.42; //
 
 //电机参数
-BLDCMotor motor = BLDCMotor(5);
+BLDCMotor motor = BLDCMotor(7);
 BLDCDriver3PWM driver = BLDCDriver3PWM(32, 33, 25, 22);
 float target_velocity = 0;
 float target_angle = 89.3;
@@ -135,18 +135,18 @@ void setup() {
     ESP.restart();
   }
 // eeprom 读取
+
 float nan = EEPROM.readFloat(0);
 if(isnan(nan))
   {
       Serial.println("frist write");
-      EEPROM.writeFloat(0, target_angle);       delay(10);
-      EEPROM.writeFloat(4, swing_up_voltage);      delay(10);
-      EEPROM.writeFloat(8, swing_up_angle);      delay(10);
-      EEPROM.writeFloat(12, v_p_1);      delay(10);
-      EEPROM.writeFloat(16, v_i_1);      delay(10);
-      EEPROM.writeFloat(20, v_p_2);      delay(10);
-      EEPROM.writeFloat(24, v_i_2);       delay(10);
-      EEPROM.commit();
+      EEPROM.writeFloat(0, target_angle);       delay(10);EEPROM.commit();
+      EEPROM.writeFloat(4, swing_up_voltage);      delay(10);EEPROM.commit();
+      EEPROM.writeFloat(8, swing_up_angle);      delay(10);EEPROM.commit();
+      EEPROM.writeFloat(12, v_p_1);      delay(10);EEPROM.commit();
+      EEPROM.writeFloat(16, v_i_1);      delay(10);EEPROM.commit();
+      EEPROM.writeFloat(20, v_p_2);      delay(10);EEPROM.commit();
+      EEPROM.writeFloat(24, v_i_2);       delay(10);EEPROM.commit();
   }
   else
   {
