@@ -67,7 +67,7 @@ float LQR_K4_2 = 1.5;   //
 float LQR_K4_3 = 1.42; //
 
 //电机参数
-BLDCMotor motor = BLDCMotor(7);
+BLDCMotor motor = BLDCMotor(5);
 BLDCDriver3PWM driver = BLDCDriver3PWM(32, 33, 25, 22);
 float target_velocity = 0;
 float target_angle = 89.3;
@@ -279,10 +279,11 @@ if(isnan(nan))
   Serial.println(F("Motor ready."));
   Serial.println(F("Set the target velocity using serial terminal:"));
 
-
+//digitalWrite(22,LOW);
 }
 char buf[255];
 long loop_count = 0;
+double last_pitch;
 void loop() {
     motor.loopFOC();
   if (1)
@@ -303,8 +304,11 @@ void loop() {
     
     double pitch = acc2rotation(accX, accY);
     double gyroZrate = gyroZ / 131.0; // Convert to deg/s
-
+    if(abs(pitch-last_pitch)>100)
+      kalmanZ.setAngle(pitch);
+    
     kalAngleZ = kalmanZ.getAngle(pitch, gyroZrate + gyroZ_OFF, dt);
+    last_pitch = pitch;
     gyroZangle += (gyroZrate + gyroZ_OFF) * dt;
     compAngleZ = 0.93 * (compAngleZ + (gyroZrate + gyroZ_OFF) * dt) + 0.07 * pitch;
 
@@ -357,14 +361,15 @@ if (abs(pendulum_angle) < swing_up_angle) // if angle small enough stabilize 0.5
 #if 1
 
 //Serial.print(gyroZangle);Serial.print("\t");
+Serial.print(pitch);Serial.print("\t");
 Serial.print(kalAngleZ);Serial.print("\t");
 
-  Serial.print(target_voltage);Serial.print("\t");
-//  Serial.print(target_velocity);Serial.print("\t");
-  Serial.print(motor.shaft_velocity);Serial.print("\t");
-  Serial.print(target_angle);Serial.print("\t");
-  Serial.print(pendulum_angle);Serial.print("\t");
-  Serial.print(gyroZrate);Serial.print("\t");
+//  Serial.print(target_voltage);Serial.print("\t");
+////  Serial.print(target_velocity);Serial.print("\t");
+//  Serial.print(motor.shaft_velocity);Serial.print("\t");
+//  Serial.print(target_angle);Serial.print("\t");
+//  Serial.print(pendulum_angle);Serial.print("\t");
+//  Serial.print(gyroZrate);Serial.print("\t");
   Serial.print("\r\n");
 #endif
 //  motor.move(target_velocity);
