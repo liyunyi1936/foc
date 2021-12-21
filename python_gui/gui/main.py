@@ -1,5 +1,6 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
+from PyQt5.QtGui import QTextCursor
 from main_ui import *
 from wifi_udp import *
 import threading    #引入并行
@@ -7,12 +8,13 @@ import numpy as np
 import pyqtgraph as pg
 import re
 from sharedcomponets import GUIToolKit
+import copy
 
 class MyWindow(QMainWindow, Ui_MainWindow):
     signalColors = [GUIToolKit.RED_COLOR, GUIToolKit.BLUE_COLOR, GUIToolKit.PURPLE_COLOR, GUIToolKit.YELLOW_COLOR,
                     GUIToolKit.MAROON_COLOR, GUIToolKit.ORANGE_COLOR, GUIToolKit.GREEN_COLOR]
     signalIcons = ['reddot', 'bluedot', 'purpledot', 'yellowdot', 'maroondot', 'orangedot', 'greendot']
-
+    textColors = ['FF5C5C','398AD9','5BEC8D','FD42AC','FF33FF','4B8200','DE87B8']
     def __init__(self, parent=None):
         super(MyWindow, self).__init__(parent)
         self.setupUi(self)
@@ -23,8 +25,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         # self.CreateItems()
         # 设置信号与槽
         self.CreateSignalSlot()
-
-
     # 设置信号与槽
     def CreateSignalSlot(self):
         self.horizontalSlider_1.valueChanged.connect(self.horizontalSlider_1_valueChanged)
@@ -41,6 +41,25 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.VI1_pushButton.clicked.connect(self.VI1_pushButton_clicked)
         self.VP2_pushButton.clicked.connect(self.VP2_pushButton_clicked)
         self.VI2_pushButton.clicked.connect(self.VI2_pushButton_clicked)
+
+        self.raw_pushButton.clicked.connect(self.raw_pushButton_clicked)
+        self.wave_pushButton.clicked.connect(self.wave_pushButton_clicked)
+    def raw_pushButton_clicked(self):
+        self.change_state = 1
+        self.stackedWidget.setCurrentIndex(1)
+        # for i in range(self.gridLayout.count()):
+        #     self.gridLayout.removeWidget(self.gridLayout.itemAt(i).widget())
+        # self.gridLayout.addWidget(self.raw_line)
+
+    def wave_pushButton_clicked(self):
+        self.change_state = 0
+        self.stackedWidget.setCurrentIndex(0)
+        # for i in range(self.gridLayout.count()):
+        #     self.gridLayout.removeWidget(self.gridLayout.itemAt(i).widget())
+        #
+        #
+        # self.gridLayout.addWidget(self.plotWidget)
+
     # 设置实例
     def CreateItems(self):
         # 定时器-绘图刷新
@@ -54,7 +73,9 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         # wifi变量
         self.wifi_recv_flag = 0
         self.close_flag = 1
+        self.change_state = 0
         self.re_item = []
+        self.raw_roll = 0
     def plot_init(self):
         # 绘图对象
         pg.setConfigOptions(antialias=True)
@@ -81,8 +102,16 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.signalPlotFlags.append(True)
             # add callback
             checkBox.stateChanged.connect(self.signalPlotFlagUpdate)
-        self.gridLayout.addWidget(self.plotWidget)
+        self.stackedWidget = QtWidgets.QStackedWidget()
+        self.gridLayout.addWidget(self.stackedWidget)
+        self.raw_line = QtWidgets.QTextEdit()
+        self.raw_line.setStyleSheet('background: rgb(0, 0, 0)')
+        self.stackedWidget.addWidget(self.plotWidget)
+        self.stackedWidget.addWidget(self.raw_line)
         self.tool_layout.addWidget(self.controlPlotWidget)
+
+
+
     # checkbox
     def signalPlotFlagUpdate(self):
         for i, (checkBox, plotFlag) in enumerate(zip(self.controlPlotWidget.signalCheckBox, self.signalPlotFlags)):
@@ -178,24 +207,32 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             recv_data = recv_data.split(',')
             """处理接受的信息"""
             # print(recv_data)
+            self.re_text = ''
             for i, data in enumerate(recv_data):
                 if self.signalPlotFlags[i]:
-                    self.re_item.append(''.join(re.split(r'[^A-Za-z]', data)))
+                    # self.re_item.append(''.join(re.split(r'[^A-Za-z]', data)))
                     data = data.replace(self.re_item[i],'')
-
-                    self.signalDataArrays[i] = np.roll(self.signalDataArrays[i], -1)
-                    self.signalDataArrays[i][-1] = data
-
+                    if self.change_state:
+                        self.re_text += '<font color=\"#{1}\">{0}\t</font>'.format(data,self.textColors[i])
+                    else:
+                        self.signalDataArrays[i] = np.roll(self.signalDataArrays[i], -1)
+                        self.signalDataArrays[i][-1] = data
     def update_plot(self):
         if self.wifi_recv_flag:
-            for i, plotFlag in enumerate(self.signalPlotFlags):
-                if plotFlag:
-                    self.signalPlots[i].setData(self.timeArray, self.signalDataArrays[i])
-                    self.signalPlots[i].updateItems()
-                    self.signalPlots[i].sigPlotChanged.emit(self.signalPlots[i])
+            if self.change_state:
+                self.raw_line.append(self.re_text)
+                if self.raw_roll:
+                    self.raw_line.moveCursor(QTextCursor.End)
+            else:
+                for i, plotFlag in enumerate(self.signalPlotFlags):
+                    if plotFlag:
+                        self.signalPlots[i].setData(self.timeArray, self.signalDataArrays[i])
+                        self.signalPlots[i].updateItems()
+                        self.signalPlots[i].sigPlotChanged.emit(self.signalPlots[i])
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         print("关闭")
+        self.udp.send_message('START')
         self.close_flag = 0
         self.udp.udpClientSocket.close()
 
@@ -247,7 +284,10 @@ class ControlPlotPanel(QtWidgets.QWidget):
             self.signalCheckBox.append(checkBox)
             self.horizontalLayout1.addWidget(checkBox)
     def zoomAllPlot(self):
-        self.controlledPlot.plotWidget.enableAutoRange()
+        if self.controlledPlot.change_state:
+            self.controlledPlot.raw_roll = ~self.controlledPlot.raw_roll
+        else:
+            self.controlledPlot.plotWidget.enableAutoRange()
     def wifi_recv_open_pushButton_clicked(self):
         if self.controlledPlot.wifi_recv_flag == 0:
             # 打开wifi接收

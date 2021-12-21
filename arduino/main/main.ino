@@ -135,10 +135,14 @@ void setup() {
     ESP.restart();
   }
 // eeprom 读取
-
-float nan = EEPROM.readFloat(0);
-if(isnan(nan))
+int k,j;
+j = 0;
+for(k=0;k<=24;k=k+4)
+{
+  float nan = EEPROM.readFloat(k);
+  if(isnan(nan))
   {
+      j = 1;
       Serial.println("frist write");
       EEPROM.writeFloat(0, target_angle);       delay(10);EEPROM.commit();
       EEPROM.writeFloat(4, swing_up_voltage);      delay(10);EEPROM.commit();
@@ -148,8 +152,9 @@ if(isnan(nan))
       EEPROM.writeFloat(20, v_p_2);      delay(10);EEPROM.commit();
       EEPROM.writeFloat(24, v_i_2);       delay(10);EEPROM.commit();
   }
-  else
-  {
+}
+if(j == 0)
+{
      target_angle = EEPROM.readFloat(0);
   swing_up_voltage = EEPROM.readFloat(4);
   swing_up_angle = EEPROM.readFloat(8);  
@@ -159,7 +164,7 @@ if(isnan(nan))
   v_i_2 = EEPROM.readFloat(24);
   motor.PID_velocity.P = v_p_1;
   motor.PID_velocity.I = v_i_1;
-  }
+}
    //命令设置
  comm.add("TA",do_TA);
  comm.add("START",do_START);
@@ -364,12 +369,14 @@ if (abs(pendulum_angle) < swing_up_angle) // if angle small enough stabilize 0.5
 Serial.print(pitch);Serial.print("\t");
 Serial.print(kalAngleZ);Serial.print("\t");
 
-//  Serial.print(target_voltage);Serial.print("\t");
-////  Serial.print(target_velocity);Serial.print("\t");
-//  Serial.print(motor.shaft_velocity);Serial.print("\t");
-//  Serial.print(target_angle);Serial.print("\t");
-//  Serial.print(pendulum_angle);Serial.print("\t");
-//  Serial.print(gyroZrate);Serial.print("\t");
+  Serial.print(target_voltage);Serial.print("\t");
+//  Serial.print(target_velocity);Serial.print("\t");
+  Serial.print(motor.shaft_velocity);Serial.print("\t");
+   Serial.print(motor.voltage.q);Serial.print("\t");
+
+  Serial.print(target_angle);Serial.print("\t");
+  Serial.print(pendulum_angle);Serial.print("\t");
+  Serial.print(gyroZrate);Serial.print("\t");
   Serial.print("\r\n");
 #endif
 //  motor.move(target_velocity);

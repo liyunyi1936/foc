@@ -99,7 +99,22 @@
        <height>31</height>
       </rect>
      </property>
-     <layout class="QHBoxLayout" name="tool_layout_2"/>
+     <layout class="QHBoxLayout" name="tool_layout_2">
+      <item>
+       <widget class="QPushButton" name="wave_pushButton">
+        <property name="text">
+         <string>波形图</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="raw_pushButton">
+        <property name="text">
+         <string>原始数据</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </widget>
    </widget>
    <widget class="QGroupBox" name="groupBox_3">
