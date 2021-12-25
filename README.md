@@ -43,6 +43,7 @@
    1. 如无法正常编译
       1. 情况1：wifi库重复，删除文件夹Arduino\libraries内的wifi文件夹。
       2. 情况2：可能与原有arduino冲突，请卸载原有的arduino。
+      3. 情况3：文件夹路径含有非法字符，可以把Arduino移动到硬盘根目录下，如D:\Arduino
 3. 打开本项目内的`python_gui`内的`可执行文件_main`内的**main.exe**并连接上WIFI：ESP32。点击设置开始调参。
 ![Image text](image/tiaocan.gif)
 4. K值可以用滑块调整，拖动滑块就会发送参数命令，但是调整到合适值之后需要自行在Arduino的main中修改再烧录一次
