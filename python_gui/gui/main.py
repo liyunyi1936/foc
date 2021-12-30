@@ -15,11 +15,14 @@ class MyWindow(QMainWindow, Ui_MainWindow):
                     GUIToolKit.MAROON_COLOR, GUIToolKit.ORANGE_COLOR, GUIToolKit.GREEN_COLOR]
     signalIcons = ['reddot', 'bluedot', 'purpledot', 'yellowdot', 'maroondot', 'orangedot', 'greendot']
     textColors = ['FF5C5C','398AD9','5BEC8D','FD42AC','FF33FF','4B8200','DE87B8']
+    slider_lab = ['horizontalSlider_1', 'horizontalSlider_2','horizontalSlider_3','horizontalSlider_4','horizontalSlider_5']
+
     def __init__(self, parent=None):
         super(MyWindow, self).__init__(parent)
         self.setupUi(self)
         # 变量初始化
         self.wifi_open_flag = 0
+        self.test_flag = 0
         # self.variable_init()
         # 设置实例
         # self.CreateItems()
@@ -27,9 +30,12 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.CreateSignalSlot()
     # 设置信号与槽
     def CreateSignalSlot(self):
-        self.horizontalSlider_1.valueChanged.connect(self.horizontalSlider_1_valueChanged)
-        self.horizontalSlider_2.valueChanged.connect(self.horizontalSlider_2_valueChanged)
-        self.horizontalSlider_3.valueChanged.connect(self.horizontalSlider_3_valueChanged)
+        self.horizontalSlider_1.valueChanged.connect(lambda: self.horizontalSlider_valueChanged(self.horizontalSlider_1))
+        self.horizontalSlider_2.valueChanged.connect(lambda: self.horizontalSlider_valueChanged(self.horizontalSlider_2))
+        self.horizontalSlider_3.valueChanged.connect(lambda: self.horizontalSlider_valueChanged(self.horizontalSlider_3))
+        self.horizontalSlider_4.valueChanged.connect(lambda: self.horizontalSlider_valueChanged(self.horizontalSlider_4))
+        self.horizontalSlider_5.valueChanged.connect(lambda: self.horizontalSlider_valueChanged(self.horizontalSlider_5))
+
         self.wifi_config_pushButton.clicked.connect(self.wifi_config_pushButton_clicked)
         self.wifi_command_pushButton_1.clicked.connect(self.wifi_command_pushButton_1_clicked)
         self.wifi_command_pushButton_2.clicked.connect(self.wifi_command_pushButton_2_clicked)
@@ -44,22 +50,38 @@ class MyWindow(QMainWindow, Ui_MainWindow):
 
         self.raw_pushButton.clicked.connect(self.raw_pushButton_clicked)
         self.wave_pushButton.clicked.connect(self.wave_pushButton_clicked)
+
+        self.test_pushButton_voltage.clicked.connect(self.test_pushButton_voltage_clicked)
+        self.test_pushButton_velocity.clicked.connect(self.test_pushButton_velocity_clicked)
     def raw_pushButton_clicked(self):
         self.change_state = 1
         self.stackedWidget.setCurrentIndex(1)
-        # for i in range(self.gridLayout.count()):
-        #     self.gridLayout.removeWidget(self.gridLayout.itemAt(i).widget())
-        # self.gridLayout.addWidget(self.raw_line)
 
     def wave_pushButton_clicked(self):
         self.change_state = 0
         self.stackedWidget.setCurrentIndex(0)
-        # for i in range(self.gridLayout.count()):
-        #     self.gridLayout.removeWidget(self.gridLayout.itemAt(i).widget())
-        #
-        #
-        # self.gridLayout.addWidget(self.plotWidget)
 
+    def test_pushButton_voltage_clicked(self):
+        self.udp.send_message("TVQ")
+        if self.test_flag == 1:
+            self.test_pushButton_voltage.setText("电压测试打开")
+            self.test_pushButton_velocity.setText("速度测试打开")
+            self.test_flag = 0
+        else:
+            self.test_pushButton_voltage.setText("电压测试关闭")
+            self.test_pushButton_velocity.setText("速度测试打开")
+            self.test_flag = 1
+
+    def test_pushButton_velocity_clicked(self):
+        self.udp.send_message("TVV")
+        if self.test_flag == 2:
+            self.test_pushButton_voltage.setText("电压测试打开")
+            self.test_pushButton_velocity.setText("速度测试打开")
+            self.test_flag = 0
+        else:
+            self.test_pushButton_voltage.setText("电压测试打开")
+            self.test_pushButton_velocity.setText("速度测试关闭")
+            self.test_flag = 2
     # 设置实例
     def CreateItems(self):
         # 定时器-绘图刷新
@@ -68,7 +90,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.timer.start(20)
         # wifi udp
         self.udp = udp()
-        # self.wifi_IP_lineEdit.setText(self.udp.user_ip)
+        # self.wifi_IP_lineEdit.setText(self.udp.user_ip)#设置为当前本机ID
     def variable_init(self):
         # wifi变量
         self.wifi_recv_flag = 0
@@ -122,24 +144,16 @@ class MyWindow(QMainWindow, Ui_MainWindow):
                 self.signalPlotFlags[i]  = False
                 self.plotWidget.removeItem( self.signalPlots[i] )
     # 滑条绑定
-    def horizontalSlider_1_valueChanged(self):
-        value = self.horizontalSlider_1.value()
-        value = float(self.left_lineEdit_1.text())+(value+100)*(float(self.right_lineEdit_1.text())-float(self.left_lineEdit_1.text()))/200
-        self.num_lineEdit_1.setText(str(value))
-        value = self.command_lineEdit_1.text()+str(value)
+    def horizontalSlider_valueChanged(self,slider):
+        i = self.slider_lab.index(slider.objectName())
+        layout = getattr(self, 'horizontalLayout_{}'.format(i+4))
+        value = layout.itemAt(1).widget().value()
+        value = float(layout.itemAt(0).widget().text()) + (value + 100) * (
+                    float(layout.itemAt(2).widget().text()) - float(layout.itemAt(0).widget().text())) / 200
+        layout.itemAt(6).widget().setText(str(value))
+        value = layout.itemAt(4).widget().text() + str(value)
         self.udp.send_message(str(value))
-    def horizontalSlider_2_valueChanged(self):
-        value = self.horizontalSlider_2.value()
-        value = float(self.left_lineEdit_2.text())+(value+100)*(float(self.right_lineEdit_2.text())-float(self.left_lineEdit_2.text()))/200
-        self.num_lineEdit_2.setText(str(value))
-        value = self.command_lineEdit_2.text()+str(value)
-        self.udp.send_message(str(value))
-    def horizontalSlider_3_valueChanged(self):
-        value = self.horizontalSlider_3.value()
-        value = float(self.left_lineEdit_3.text())+(value+100)*(float(self.right_lineEdit_3.text())-float(self.left_lineEdit_3.text()))/200
-        self.num_lineEdit_3.setText(str(value))
-        value = self.command_lineEdit_3.text()+str(value)
-        self.udp.send_message(str(value))
+
     # command命令发送事件
     def wifi_command_pushButton_1_clicked(self):
         self.udp.send_message(self.wifi_command_lineEdit_1.text())
