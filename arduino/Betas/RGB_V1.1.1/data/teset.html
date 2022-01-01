@@ -1,0 +1,199 @@
+<html>
+<head>
+<title>根据JAVASCRIPT设置innerHTML</title>
+<meta http-equiv="Content-Type" content="text/html; charset=gb2312">
+<style>
+/*input框*/
+input, button {
+            border: none;
+            outline: none;
+        }
+.tl-input{
+    width: 100%;
+    border: 1px solid #ccc;
+    padding: 7px 0;
+    background: #F4F4F7;
+    border-radius: 3px;
+    padding-left:5px;
+    -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
+    box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
+    -webkit-transition: border-color ease-in-out .15s,-webkit-box-shadow ease-in-out .15s;
+    -o-transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
+    transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s
+}
+.tl-input:focus{
+    border-color: #66afe9;
+    outline: 0;
+    -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075),0 0 8px rgba(102,175,233,.6);
+    box-shadow: inset 0 1px 1px rgba(0,0,0,.075),0 0 8px rgba(102,175,233,.6)
+}
+
+.ant-btn {
+    line-height: 1.499;
+    position: relative;
+    display: inline-block;
+    font-weight: 400;
+    white-space: nowrap;
+    text-align: center;
+    background-image: none;
+    border: 1px solid transparent;
+    -webkit-box-shadow: 0 2px 0 rgba(0,0,0,0.015);
+    box-shadow: 0 2px 0 rgba(0,0,0,0.015);
+    cursor: pointer;
+    -webkit-transition: all .3s cubic-bezier(.645, .045, .355, 1);
+    transition: all .3s cubic-bezier(.645, .045, .355, 1);
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -ms-touch-action: manipulation;
+    touch-action: manipulation;
+    height: 32px;
+    padding: 0 15px;
+    font-size: 14px;
+    border-radius: 4px;
+    color: rgba(0,0,0,0.65);
+    background-color: #fff;
+    border-color: #d9d9d9;
+}
+
+.ant-btn-primary {
+    color: #fff;
+    background-color: #1890ff;
+    border-color: #1890ff;
+    text-shadow: 0 -1px 0 rgba(0,0,0,0.12);
+    -webkit-box-shadow: 0 2px 0 rgba(0,0,0,0.045);
+    box-shadow: 0 2px 0 rgba(0,0,0,0.045);
+}
+.ant-btn-red {
+    color: #fff;
+    background-color: #FF5A44;
+    border-color: #FF5A44;
+    text-shadow: 0 -1px 0 rgba(0,0,0,0.12);
+    -webkit-box-shadow: 0 2px 0 rgba(0,0,0,0.045);
+    box-shadow: 0 2px 0 rgba(0,0,0,0.045);
+}
+</style>
+</head>
+<body bgcolor="#FFFFFF" text="#000000">
+<form name=form1>
+  <br>
+  <table id="loglist">   
+    <tr align="left" valign="middle" bgcolor="#eeeeee">
+      <td bgcolor="#eeeeee" height="92">
+        <li> 设置个数<br>
+          <span id="Shaft_Velocity"></span>
+          <input type="text" name="upcount" value="1" id="Shaft_Velocity2">
+          <input type="button" name="Button" οnclick="setid();" value="· 设定 ·">
+      <input type="button" name="ButtonAdd" οnclick="setSetAddOne();" value="· 增加 ·">
+        </li>
+      </td>
+    </tr>
+    <tr align="center" valign="middle">
+      <td align="left" id="upid" height="122">
+        请选择操作项：<select name=select1><option value=1>中国人打死日本人</option><option value=2>中国人踢死日本人</option><option value=3>中国人玩死日本人</option></select>
+      </td>
+    </tr>       
+  </table>
+</form>
+<div>
+            <div style="width: 90px;float: left"><input class="tl-input" type="text" placeholder="最低价"></div>
+            <div style="width: 20px;float: left;text-align: center">-</div>
+            <div style="width: 90px;float: left"><input class="tl-input" type="text" placeholder="最高价"></div>
+            <div style="width: 60px;float: left;margin-left: 20px"><button class="ant-btn ant-btn-red">确定</button></div>
+        </div>
+		<button type="button" onclick="loadXMLDoc('/Control?Type=0&Index=0&Operation=0','OperationHit')" class="ant-btn ant-btn-red">开灯</button>
+		<button type="button" onclick="loadXMLDoc('/Control?Type=0&Index=0&Operation=1','OperationHit')" class="ant-btn ant-btn-red">+</button>
+		<button type="button" onclick="loadXMLDoc('/Control?Type=0&Index=0&Operation=2','OperationHit')" class="ant-btn ant-btn-red">-</button>
+		<button type="button" onclick="loadXMLDoc('/Control?Type=0&Index=0&Operation=3','OperationHit')" class="ant-btn ant-btn-red">关灯</button>
+		<button type="button" onclick="loadXMLDoc('/Control?Type=0&Index=0&Operation=4','OperationHit')" class="ant-btn ant-btn-red">重启</button>
+
+	
+	<table border="0">
+        <tr>
+            <td height="50">已启动：<span id=CurrentMillis></span>  &nbsp;&nbsp;&nbsp;&nbsp;电池电压：<span id="BAT_VOLTAGE" style="color:#de87b8;"></span> V
+            </td>
+        </tr>
+        <tr>
+            <td height="50">
+		<button type="button" onclick="loadXMLDoc('/Control?Type=0&Index=0&Operation=0','OperationHit')" class="ant-btn ant-btn-red">开灯</button>
+		<button type="button" onclick="loadXMLDoc('/Control?Type=0&Index=0&Operation=1','OperationHit')" class="ant-btn ant-btn-red">+</button>
+		<button type="button" onclick="loadXMLDoc('/Control?Type=0&Index=0&Operation=2','OperationHit')" class="ant-btn ant-btn-red">-</button>
+		<button type="button" onclick="loadXMLDoc('/Control?Type=0&Index=0&Operation=3','OperationHit')" class="ant-btn ant-btn-red">关灯</button>
+		<button type="button" onclick="loadXMLDoc('/Control?Type=1&Index=99&Operation=0','OperationHit')" class="ant-btn ant-btn-red">电机启停</button>
+		<button type="button" onclick="loadXMLDoc('/Control?Type=0&Index=0&Operation=4','OperationHit')" class="ant-btn ant-btn-red">重启</button>
+            </td>
+        </tr>
+        <tr>
+            <td align="left">
+    <table border="1" cellspacing="0" cellpadding="0">
+		<tr>
+<td align="center"><span style="color:#398ad9;">期望角度TA</span></td>
+<td align="center"><span style="color:#5bec8d;">摇摆电压SV</span></td>
+<td align="center"><span style="color:#fd42ac;">摇摆角度SA</span></td>
+<td align="center"><span style="color:#4b8200;">速度环P1</span></td>
+<td align="center"><span style="color:#ff33ff;">速度环I1</span></td>
+<td align="center"><span style="color:#4b8200;">速度环P2</span></td>
+<td align="center"><span style="color:#ff33ff;">速度环I2</span></td>
+       </tr>
+        <tr>
+<td align="center"><span style="color:#ff5c5c;" id="target_velocity"></span></td>
+<td align="center"><span style="color:#5bec8d;" id="swing_up_voltage"></span></td>
+<td align="center"><span style="color:#fd42ac;" id="swing_up_angle"></span></td>
+<td align="center"><span style="color:#4b8200;" id="v_p_1"></span></td>
+<td align="center"><span style="color:#ff33ff;" id="v_i_1"></span></td>
+<td align="center"><span style="color:#4b8200;" id="v_p_2"></span></td>
+<td align="center"><span style="color:#ff33ff;" id="v_i_2"></span></td>
+		</tr>
+        <tr>
+<td align="center">
+<div style="width: 90px;float: left"><input class="tl-input" type="text" name="target_velocity" id="target_velocity2" size="2" onchange="checkNum(this)"><button type="button" class="ant-btn ant-btn-primary"  onclick="document.getElementById('target_velocity2').value=Number(document.getElementById('target_velocity2').value)+0.5;">+</button>
+<button type="button" class="ant-btn ant-btn-primary" onclick="document.getElementById('target_velocity2').value=Number(document.getElementById('target_velocity2').value)-0.5;">-</button><br>
+<button type="button" class="ant-btn ant-btn-red"  onclick="alert('/Control?Type=1&Index=0&Operation='+document.getElementById('target_velocity2').value)">发送</button></td>
+<td align="center">
+<div style="width: 90px;float: left"><input class="tl-input" name="swing_up_voltage" id="swing_up_voltage2" size="2" onchange="checkNum(this)"><button type="button" class="ant-btn ant-btn-primary"  onclick="document.getElementById('swing_up_voltage2').value=Number(Number(document.getElementById('swing_up_voltage2').value)+0.10).toPrecision(2);">+</button><button type="button" class="ant-btn ant-btn-primary" onclick="document.getElementById('swing_up_voltage2').value=Number(Number(document.getElementById('swing_up_voltage2').value)-0.10).toPrecision(2);">-</button><br>
+<button type="button" class="ant-btn ant-btn-red"  onclick="">发送</button>
+</td>
+<td align="center">
+<div style="width: 90px;float: left"><input class="tl-input" name="swing_up_angle" id="swing_up_angle2" size="2" onchange="checkNum(this)"><button type="button" class="ant-btn ant-btn-primary"  onclick="document.getElementById('swing_up_angle2').value=Number(document.getElementById('swing_up_angle2').value)+1;">+</button><button type="button" class="ant-btn ant-btn-primary" onclick="document.getElementById('swing_up_angle2').value=Number(document.getElementById('swing_up_angle2').value)-1;">-</button><br>
+<button type="button" class="ant-btn ant-btn-red"  onclick="">发送</button>
+</td>
+<td align="center">
+<div style="width: 90px;float: left"><input class="tl-input" name="v_p_1" id="v_p_12" size="2" onchange="checkNum(this)"><button type="button" class="ant-btn ant-btn-primary"  onclick="document.getElementById('v_p_12').value=Number(document.getElementById('v_p_12').value)+0.1;">+</button><button type="button" class="ant-btn ant-btn-primary" onclick="document.getElementById('v_p_12').value=Number(document.getElementById('v_p_12').value)-0.1;">-</button><br>
+<button type="button" class="ant-btn ant-btn-red"  onclick="">发送</button>
+</td>
+<td align="center">
+<div style="width: 90px;float: left"><input class="tl-input" name="v_i_1" id="v_i_12" size="2" onchange="checkNum(this)"><button type="button" class="ant-btn ant-btn-primary"  onclick="document.getElementById('v_i_12').value=Number(document.getElementById('v_i_12').value)+0.5;">+</button><button type="button" class="ant-btn ant-btn-primary" onclick="document.getElementById('v_i_12').value=Number(document.getElementById('v_i_12').value)-0.5;">-</button><br>
+<button type="button" class="ant-btn ant-btn-red"  onclick="">发送</button>
+</td>
+<td align="center">
+<div style="width: 90px;float: left"><input class="tl-input" name="v_p_2" id="v_p_22" size="2" onchange="checkNum(this)"><button type="button" class="ant-btn ant-btn-primary"  onclick="document.getElementById('v_p_22').value=Number(document.getElementById('v_p_22').value)+0.1;">+</button><button type="button" class="ant-btn ant-btn-primary" onclick="document.getElementById('v_p_22').value=Number(document.getElementById('v_p_22').value)-0.1;">-</button><br>
+<button type="button" class="ant-btn ant-btn-red"  onclick="">发送</button>
+</td>
+<td align="center">
+<div style="width: 90px;float: left"><input class="tl-input" name="v_i_2" id="v_i_22" size="2" onchange="checkNum(this)"><button type="button" class="ant-btn ant-btn-primary"  onclick="document.getElementById('v_i_22').value=Number(document.getElementById('v_i_22').value)+0.5;">+</button><button type="button" class="ant-btn ant-btn-primary" onclick="document.getElementById('v_i_22').value=Number(document.getElementById('v_i_22').value)-0.5;">-</button><br>
+<button type="button" class="ant-btn ant-btn-red"  onclick="">发送</button>
+</td>
+		</tr>
+	 </table>
+<script>
+function checkNum(obj) {
+     //检查是否是非数字值
+     if (isNaN(obj.value)) {
+         obj.value = "";
+     }
+     if (obj != null) {
+         //检查小数点后是否对于两位
+         if (obj.value.toString().split(".").length > 1 && obj.value.toString().split(".")[1].length > 2) {
+             //alert("小数点后多于两位！");
+             obj.value = Number(obj.value).toPrecision(2);
+         }
+     }
+ };
+document.getElementById('Shaft_Velocity').innerHTML			+="11"+"<br>";
+document.getElementById('Shaft_Velocity').innerHTML			+="22"+"<br>";
+            document.getElementById('Shaft_Velocity2').value="aa";
+			
+</script>
+</body>
+</html>
