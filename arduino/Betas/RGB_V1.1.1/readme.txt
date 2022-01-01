@@ -1,7 +1,7 @@
 本版本是慕炎RGB版本程序 基于45°(https://gitee.com/coll45/foc/)程序修改
 同步更新 https://gitee.com/muyan3000/RGBFOC
 
-本版本需要对应的硬件支持才能获得完整功能
+本版本虽然能在原版本pcb上运行，但完整功能需要对应的硬件支持才能获得
 
 【硬件基于45°工程文件修改】
 https://oshwhub.com/muyan2020/zi-ping-heng-di-lai-luo-san-jiao_10-10-ban-ben_copy
