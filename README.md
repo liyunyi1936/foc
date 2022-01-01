@@ -38,20 +38,20 @@
 
 #### 3 使用说明
 
-1. 前往灯哥开源[FOCgit](https://gitee.com/ream_d/Deng-s-foc-controller)下载Arduino开发环境（~~也可自行下载Arduino并安装SimpleFOC~~）并打开本项目内的Arduino内的main。
-2. 烧录程序到ESP32：选择工具-开发板-esp32 Arduino-ESP32 Dev module，然后连接USB口选择对应的com口，编译上传。
+1. 下载完本git所以文件后，打开arduino文件夹，解压arduino.7z完成之后双击运行esp32_package_1.0.6.exe安装esp32库环境。注意：若之前有安装过arduino，请将路径`C:\Users\用户名\AppData\Local\`的Arduino15文件夹和`此电脑\文档`内的Arduino<font color='red'> 删除 </font>（~~也可自行下载Arduino并安装SimpleFOC~~）（但是可能会版本不对电机不动）
+2. 打开解压后的arduino文件夹内的arduino.exe，导航栏-文件-打开。选择arduino\main里面的main.ino
+3. 烧录程序到ESP32：选择工具-开发板-esp32 Arduino-ESP32 Dev module，然后连接USB口选择对应的com口，编译上传。
    1. 　<font color='red'> 如无法正常编译 </font>
-      1. 情况1：wifi库重复，删除文件夹Arduino\libraries内的wifi文件夹。
-      2. 情况2：可能与原有arduino冲突，请卸载原有的arduino。
-      3. 情况3：文件夹路径含有非法字符，可以把Arduino移动到硬盘根目录下，如D:\Arduino
-3. 打开本项目内的`python_gui`内的`可执行文件_main`内的**main.exe**并连接上WIFI：ESP32 密码：12345678。点击设置开始调参。
-4. 连接成功后，点击disable，然后逆时针拨动动量轮，查看上位机中V参数是否为正值。注意！如果<font color='red'> 逆时针转为为负值 </font>那么需要将电机线任意两线互换。
+      1. 可能与原有arduino冲突，请查看使用说明第一条
+      2. 文件夹路径含有非法字符，可以把Arduino移动到硬盘根目录下，如D:\Arduino
+4. 打开本项目内的`python_gui`内的`可执行文件_main`内的**main.exe**并连接上WIFI：ESP32 密码：12345678。点击设置开始调参。
+5. 连接成功后，点击disable，然后逆时针拨动动量轮，查看上位机中V参数是否为正值。注意！如果<font color='red'> 逆时针转为为负值 </font>那么需要将电机线任意两线互换。
 ![Image text](image/tiaocan.gif)
-5. 如果电机不能正常运行可以，点击上位机中最下方的<font color='red'> 测试部分 </font>，打开电压或者速度测试，滑动滑条，查看电机能否正常运行。如还不能请检测硬件电路部分。
-6. 如果不能摇摆直立，推荐调整的参数为TA、SA、SV
-7. K值可以用滑块调整，拖动滑块就会发送参数命令，但是调整到合适值之后需要自行在Arduino的main中修改再烧录一次
+6. 如果电机不能正常运行可以，点击上位机中最下方的<font color='red'> 测试部分 </font>，打开电压或者速度测试，滑动滑条，查看电机能否正常运行。如还不能请检测硬件电路部分。
+7. 如果不能摇摆直立，推荐调整的参数为TA、SA、SV
+8. K值可以用滑块调整，拖动滑块就会发送参数命令，但是调整到合适值之后需要自行在Arduino的main中修改再烧录一次
 
-8. 滑条：最左边输入框为滑块下限，右边是滑块上限，滑条等分成**200**份，命令是**字符串**，滑动滑块发送**字符串** + **数值**
+9. 滑条：最左边输入框为滑块下限，右边是滑块上限，滑条等分成**200**份，命令是**字符串**，滑动滑块发送**字符串** + **数值**
 
 比如让平衡角度为90度，则输入：TA90，并且会存入eeprom的位置0中 注：wifi发送**命令不能过快**，因为每次都会保存进eeprom，K参数没有保存到EEPROM所以可以使用滑条调整。
 
@@ -106,9 +106,10 @@ Arduino上的控制算法是原作者的LQR，无刷电机控制是灯哥开源F
 Python的GUI是SimpleFOC的SimpleFOCStudio。
 
 充电电路是立创广场开源的CS5095充电方案。
-1.  原作者：基于LQR控制器的自平衡莱洛三角形[BV19v411n7mN](https://www.bilibili.com/video/BV19v411n7mN)
-2.  灯哥开源FOC [https://gitee.com/ream_d/Deng-s-foc-controller](https://gitee.com/ream_d/Deng-s-foc-controller)
-3.  充电芯片电路[https://oshwhub.com/Aknice/cs5095e-san-jie-li-dian-chi-sheng-ya-chong-dian-dian-lu](https://oshwhub.com/Aknice/cs5095e-san-jie-li-dian-chi-sheng-ya-chong-dian-dian-lu)
+1. 原作者：基于LQR控制器的自平衡莱洛三角形[BV19v411n7mN](https://www.bilibili.com/video/BV19v411n7mN)
+2. 灯哥开源FOC [https://gitee.com/ream_d/Deng-s-foc-controller](https://gitee.com/ream_d/Deng-s-foc-controller)
+3. 充电芯片电路[https://oshwhub.com/Aknice/cs5095e-san-jie-li-dian-chi-sheng-ya-chong-dian-dian-lu](https://oshwhub.com/Aknice/cs5095e-san-jie-li-dian-chi-sheng-ya-chong-dian-dian-lu)
+4. Arduino环境提供者[https://github.com/kaliCYH](https://github.com/kaliCYH)
 
 #### 6 有用的地方
 
