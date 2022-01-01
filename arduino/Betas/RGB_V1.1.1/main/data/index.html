@@ -1,0 +1,314 @@
+﻿<!--
+自平衡莱洛三角形 RGB版
+HW:Ver 1.5
+FW:Ver 1.2
+-->
+<html lang="zh-cn">
+<head>
+<title>自平衡莱洛三角形</title>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<style>
+/*input框*/
+input, button {
+            border: none;
+            outline: none;
+        }
+.tl-input{
+    width: 100%;
+    border: 1px solid #ccc;
+    padding: 7px 0;
+    background: #F4F4F7;
+    border-radius: 3px;
+    padding-left:5px;
+    -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
+    box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
+    -webkit-transition: border-color ease-in-out .15s,-webkit-box-shadow ease-in-out .15s;
+    -o-transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
+    transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s
+}
+.tl-input:focus{
+    border-color: #66afe9;
+    outline: 0;
+    -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075),0 0 8px rgba(102,175,233,.6);
+    box-shadow: inset 0 1px 1px rgba(0,0,0,.075),0 0 8px rgba(102,175,233,.6)
+}
+
+.ant-btn {
+    line-height: 1.499;
+    position: relative;
+    display: inline-block;
+    font-weight: 400;
+    white-space: nowrap;
+    text-align: center;
+    background-image: none;
+    border: 1px solid transparent;
+    -webkit-box-shadow: 0 2px 0 rgba(0,0,0,0.015);
+    box-shadow: 0 2px 0 rgba(0,0,0,0.015);
+    cursor: pointer;
+    -webkit-transition: all .3s cubic-bezier(.645, .045, .355, 1);
+    transition: all .3s cubic-bezier(.645, .045, .355, 1);
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -ms-touch-action: manipulation;
+    touch-action: manipulation;
+    height: 32px;
+    padding: 0 15px;
+    font-size: 14px;
+    border-radius: 4px;
+    color: rgba(0,0,0,0.65);
+    background-color: #fff;
+    border-color: #d9d9d9;
+}
+
+.ant-btn-primary {
+    color: #fff;
+    background-color: #1890ff;
+    border-color: #1890ff;
+    text-shadow: 0 -1px 0 rgba(0,0,0,0.12);
+    -webkit-box-shadow: 0 2px 0 rgba(0,0,0,0.045);
+    box-shadow: 0 2px 0 rgba(0,0,0,0.045);
+}
+.ant-btn-red {
+    color: #fff;
+    background-color: #FF5A44;
+    border-color: #FF5A44;
+    text-shadow: 0 -1px 0 rgba(0,0,0,0.12);
+    -webkit-box-shadow: 0 2px 0 rgba(0,0,0,0.045);
+    box-shadow: 0 2px 0 rgba(0,0,0,0.045);
+}
+</style>
+<script>
+function loadXMLDoc(path,element)
+{
+    var xmlhttp;
+    if (window.XMLHttpRequest)
+    {
+        //  IE7+, Firefox, Chrome, Opera, Safari 浏览器执行代码
+        xmlhttp=new XMLHttpRequest();
+    }
+    else
+    {
+        // IE6, IE5 浏览器执行代码
+        xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+    }
+    xmlhttp.onreadystatechange=function()
+    {
+        if (xmlhttp.readyState==4 && xmlhttp.status==200)
+        {
+            document.getElementById(element).innerHTML=xmlhttp.responseText;
+        }
+    }
+    xmlhttp.open("GET",path,true);
+    xmlhttp.send();
+}
+
+function UpdateInfo()
+{
+    var xmlhttp;
+    if (window.XMLHttpRequest)
+    {
+        //  IE7+, Firefox, Chrome, Opera, Safari 浏览器执行代码
+        xmlhttp=new XMLHttpRequest();
+    }
+    else
+    {
+        // IE6, IE5 浏览器执行代码
+        xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+    }
+    xmlhttp.onreadystatechange=function()
+    {
+        if (xmlhttp.readyState==4 && xmlhttp.status==200)
+        {
+            var arr=xmlhttp.responseText.split(",");
+
+            document.getElementById('TimeDiv').innerHTML=arr[0];
+            document.getElementById('CurrentMillis').innerHTML=arr[1];
+			
+            document.getElementById('BAT_VOLTAGE').innerHTML=arr[2];
+
+			if(document.getElementById('log_control').value=="1"){
+            document.getElementById('Shaft_Velocity').innerHTML	=arr[3]+"<br>"+document.getElementById('Shaft_Velocity').innerHTML;
+            document.getElementById('motor_voltage_q').innerHTML=arr[4]+"<br>"+document.getElementById('motor_voltage_q').innerHTML;
+            document.getElementById('target_velocity').innerHTML=arr[5]+"<br>"+document.getElementById('target_velocity').innerHTML;
+            document.getElementById('pendulum_angle').innerHTML=arr[6]+"<br>"+document.getElementById('pendulum_angle').innerHTML;
+            document.getElementById('target_angle').innerHTML=arr[7]+"<br>"+document.getElementById('target_angle').innerHTML;
+            document.getElementById('kalAngleZ').innerHTML=arr[8]+"<br>"+document.getElementById('kalAngleZ').innerHTML;
+            document.getElementById('gyroZrate').innerHTML=arr[9]+"<br>"+document.getElementById('gyroZrate').innerHTML;
+			}
+
+            document.getElementById('target_angle_ROM').innerHTML=arr[10];
+            document.getElementById('swing_up_voltage').innerHTML=arr[11];
+            document.getElementById('swing_up_angle').innerHTML=arr[12];
+            document.getElementById('v_i_1').innerHTML=arr[13];
+            document.getElementById('v_p_1').innerHTML=arr[14];
+            document.getElementById('v_i_2').innerHTML=arr[15];
+            document.getElementById('v_p_2').innerHTML=arr[16];
+
+			if(document.getElementById('target_angle_ROM2').value=="") document.getElementById('target_angle_ROM2').value=arr[10];
+			if(document.getElementById('swing_up_voltage2').value=="") document.getElementById('swing_up_voltage2').value=arr[11];
+			if(document.getElementById('swing_up_angle2').value=="") document.getElementById('swing_up_angle2').value=arr[12];
+			if(document.getElementById('v_i_12').value=="") document.getElementById('v_i_12').value=arr[13];
+			if(document.getElementById('v_p_12').value=="") document.getElementById('v_p_12').value=arr[14];
+			if(document.getElementById('v_i_22').value=="") document.getElementById('v_i_22').value=arr[15];
+			if(document.getElementById('v_p_22').value=="") document.getElementById('v_p_22').value=arr[16];
+        }
+    }
+    xmlhttp.open("GET",'/update',true);
+    xmlhttp.send();
+}
+
+    function MyAutoRun()
+    { 
+       UpdateInfo();
+    } 
+    setInterval("MyAutoRun()",1000);
+
+    function clearLog()
+    { 
+            document.getElementById('Shaft_Velocity').innerHTML			="";
+            document.getElementById('motor_voltage_q').innerHTML		="";
+            document.getElementById('target_velocity').innerHTML		="";
+            document.getElementById('pendulum_angle').innerHTML		="";
+            document.getElementById('target_angle').innerHTML			="";
+            document.getElementById('kalAngleZ').innerHTML				="";
+            document.getElementById('gyroZrate').innerHTML				="";
+    } 
+
+function checkNum(obj) {
+     //检查是否是非数字值
+     if (isNaN(obj.value)) {
+         obj.value = "";
+     }
+     if (obj != null) {
+         //检查小数点后是否对于两位
+         if (obj.value.toString().split(".").length > 1 && obj.value.toString().split(".")[1].length > 2) {
+             //alert("小数点后多于两位！");
+             obj.value = Number(obj.value).toPrecision(2);
+         }
+     }
+ };
+ </script>
+</head>
+<body style="background-color:black;color:white">
+
+
+    <font size=6>自平衡莱洛三角形
+        <div id="TimeDiv" hidden>datetime</div>
+    </font>
+</div>
+    <div id="OperationHit"><h2></h2></div>
+    <table border="0">
+        <tr>
+            <td height="50">已启动：<span id=CurrentMillis></span>  &nbsp;&nbsp;&nbsp;&nbsp;电池电压：<span id="BAT_VOLTAGE" style="color:#de87b8;"></span> V
+            </td>
+        </tr>
+        <tr>
+            <td height="50">
+		<button type="button" onclick="loadXMLDoc('/Control?Type=0&Index=0&Operation=0','OperationHit')" class="ant-btn ant-btn-red">开灯</button>
+		<button type="button" onclick="loadXMLDoc('/Control?Type=0&Index=0&Operation=1','OperationHit')" class="ant-btn ant-btn-red">+</button>
+		<button type="button" onclick="loadXMLDoc('/Control?Type=0&Index=0&Operation=2','OperationHit')" class="ant-btn ant-btn-red">-</button>
+		<button type="button" onclick="loadXMLDoc('/Control?Type=0&Index=0&Operation=3','OperationHit')" class="ant-btn ant-btn-red">关灯</button>
+		<button type="button" onclick="loadXMLDoc('/Control?Type=1&Index=99&Operation=0','OperationHit')" class="ant-btn ant-btn-red">电机启停</button>
+		<button type="button" onclick="loadXMLDoc('/Control?Type=0&Index=0&Operation=4','OperationHit')" class="ant-btn ant-btn-red">重启</button>
+            </td>
+        </tr>
+        <tr>
+            <td align="left">
+    <table border="1" cellspacing="0" cellpadding="0">
+		<tr>
+<td align="center"><span style="color:#398ad9;">期望角度TA</span></td>
+<td align="center"><span style="color:#5bec8d;">摇摆电压SV</span></td>
+<td align="center"><span style="color:#fd42ac;">摇摆角度SA</span></td>
+<td align="center"><span style="color:#4b8200;">速度环P1</span></td>
+<td align="center"><span style="color:#ff33ff;">速度环I1</span></td>
+<td align="center"><span style="color:#4b8200;">速度环P2</span></td>
+<td align="center"><span style="color:#ff33ff;">速度环I2</span></td>
+       </tr>
+        <tr>
+<td align="center"><span style="color:#ff5c5c;" id="target_angle_ROM"></span></td>
+<td align="center"><span style="color:#5bec8d;" id="swing_up_voltage"></span></td>
+<td align="center"><span style="color:#fd42ac;" id="swing_up_angle"></span></td>
+<td align="center"><span style="color:#4b8200;" id="v_p_1"></span></td>
+<td align="center"><span style="color:#ff33ff;" id="v_i_1"></span></td>
+<td align="center"><span style="color:#4b8200;" id="v_p_2"></span></td>
+<td align="center"><span style="color:#ff33ff;" id="v_i_2"></span></td>
+		</tr>
+        <tr>
+<td align="center">
+<div style="width: 90px;float: left"><input class="tl-input" type="text" name="target_angle_ROM" id="target_angle_ROM2" size="2" onchange="checkNum(this)"><button type="button" class="ant-btn ant-btn-primary"  onclick="document.getElementById('target_angle_ROM2').value=Number(document.getElementById('target_angle_ROM2').value)+0.5;">+</button>
+<button type="button" class="ant-btn ant-btn-primary" onclick="document.getElementById('target_angle_ROM2').value=Number(document.getElementById('target_angle_ROM2').value)-0.5;">-</button><br>
+<button type="button" class="ant-btn ant-btn-red"  onclick="loadXMLDoc('/Control?Type=1&Index=0&Operation='+document.getElementById('target_angle_ROM2').value,'OperationHit')">发送</button></td>
+<td align="center">
+<div style="width: 90px;float: left"><input class="tl-input" name="swing_up_voltage" id="swing_up_voltage2" size="2" onchange="checkNum(this)"><button type="button" class="ant-btn ant-btn-primary"  onclick="document.getElementById('swing_up_voltage2').value=Number(Number(document.getElementById('swing_up_voltage2').value)+0.10).toPrecision(2);">+</button>
+<button type="button" class="ant-btn ant-btn-primary" onclick="document.getElementById('swing_up_voltage2').value=Number(Number(document.getElementById('swing_up_voltage2').value)-0.10).toPrecision(2);">-</button><br>
+<button type="button" class="ant-btn ant-btn-red" onclick="loadXMLDoc('/Control?Type=1&Index=1&Operation='+document.getElementById('swing_up_voltage2').value,'OperationHit')">发送</button>
+</td>
+<td align="center">
+<div style="width: 90px;float: left"><input class="tl-input" name="swing_up_angle" id="swing_up_angle2" size="2" onchange="checkNum(this)"><button type="button" class="ant-btn ant-btn-primary"  onclick="document.getElementById('swing_up_angle2').value=Number(document.getElementById('swing_up_angle2').value)+1;">+</button>
+<button type="button" class="ant-btn ant-btn-primary" onclick="document.getElementById('swing_up_angle2').value=Number(document.getElementById('swing_up_angle2').value)-1;">-</button><br>
+<button type="button" class="ant-btn ant-btn-red" onclick="loadXMLDoc('/Control?Type=1&Index=2&Operation='+document.getElementById('swing_up_angle2').value,'OperationHit')">发送</button>
+</td>
+<td align="center">
+<div style="width: 90px;float: left"><input class="tl-input" name="v_p_1" id="v_p_12" size="2" onchange="checkNum(this)"><button type="button" class="ant-btn ant-btn-primary"  onclick="document.getElementById('v_p_12').value=Number(Number(document.getElementById('v_p_12').value)+0.1).toPrecision(2);">+</button>
+<button type="button" class="ant-btn ant-btn-primary" onclick="document.getElementById('v_p_12').value=Number(Number(document.getElementById('v_p_12').value)-0.1).toPrecision(2);">-</button><br>
+<button type="button" class="ant-btn ant-btn-red" onclick="loadXMLDoc('/Control?Type=1&Index=3&Operation='+document.getElementById('v_p_12').value,'OperationHit')">发送</button>
+</td>
+<td align="center">
+<div style="width: 90px;float: left"><input class="tl-input" name="v_i_1" id="v_i_12" size="2" onchange="checkNum(this)"><button type="button" class="ant-btn ant-btn-primary"  onclick="document.getElementById('v_i_12').value=Number(document.getElementById('v_i_12').value)+0.5;">+</button>
+<button type="button" class="ant-btn ant-btn-primary" onclick="document.getElementById('v_i_12').value=Number(document.getElementById('v_i_12').value)-0.5;">-</button><br>
+<button type="button" class="ant-btn ant-btn-red" onclick="loadXMLDoc('/Control?Type=1&Index=4&Operation='+document.getElementById('v_i_12').value,'OperationHit')">发送</button>
+</td>
+<td align="center">
+<div style="width: 90px;float: left"><input class="tl-input" name="v_p_2" id="v_p_22" size="2" onchange="checkNum(this)"><button type="button" class="ant-btn ant-btn-primary"  onclick="document.getElementById('v_p_22').value=Number(Number(document.getElementById('v_p_22').value)+0.1).toPrecision(2);">+</button>
+<button type="button" class="ant-btn ant-btn-primary" onclick="document.getElementById('v_p_22').value=Number(Number(document.getElementById('v_p_22').value)-0.1).toPrecision(2);">-</button><br>
+<button type="button" class="ant-btn ant-btn-red" onclick="loadXMLDoc('/Control?Type=1&Index=5&Operation='+document.getElementById('v_p_22').value,'OperationHit')">发送</button>
+</td>
+<td align="center">
+<div style="width: 90px;float: left"><input class="tl-input" name="v_i_2" id="v_i_22" size="2" onchange="checkNum(this)"><button type="button" class="ant-btn ant-btn-primary"  onclick="document.getElementById('v_i_22').value=Number(document.getElementById('v_i_22').value)+0.5;">+</button>
+<button type="button" class="ant-btn ant-btn-primary" onclick="document.getElementById('v_i_22').value=Number(document.getElementById('v_i_22').value)-0.5;">-</button><br>
+<button type="button" class="ant-btn ant-btn-red" onclick="loadXMLDoc('/Control?Type=1&Index=6&Operation='+document.getElementById('v_i_22').value,'OperationHit')">发送</button>
+</td>
+		</tr>
+	 </table>
+            </td>
+        </tr>
+        <tr>
+            <td height="50">
+		<button type="button" onclick="document.getElementById('loglist').style.display='block';">显示记录</button>
+		<button type="button" onclick="document.getElementById('loglist').style.display='none';">隐藏记录</button>
+		<button type="button" onclick="clearLog()">清除记录</button>
+		<button type="button" onclick="document.getElementById('log_control').value=1;loadXMLDoc('/Control?Type=0&Index=5&Operation=1','OperationHit')">开启记录</button>
+		<button type="button" onclick="document.getElementById('log_control').value=0;loadXMLDoc('/Control?Type=0&Index=5&Operation=0','OperationHit')">停止记录</button>
+		<input type="hidden" name="log_control" id="log_control" value="1">
+            </td>
+        </tr>
+        <tr>
+            <td align="left">
+    <table border="1" cellspacing="0" cellpadding="0" ID="loglist" width="100%">
+		<tr>
+            <td align="center"><span style="color:#ff5c5c;">Shaft Velocity</span></td>
+<td align="center"><span style="color:#398ad9;">motor voltage q</span></td>
+<td align="center"><span style="color:#ff5c5c;">target_velocity</span></td>
+<td align="center"><span style="color:#5bec8d;">pendulum_angle</span></td>
+<td align="center"><span style="color:#fd42ac;">target_angle</span></td>
+<td align="center"><span style="color:#ff33ff;">kalAngleZ</span></td>
+<td align="center"><span style="color:#4b8200;">gyroZrate</span></td>
+       </tr>
+        <tr>
+<td align="center"><span style="color:#ff5c5c;" id="Shaft_Velocity"></span></td>
+<td align="center"><span style="color:#398ad9;" id="motor_voltage_q"></span></td>
+<td align="center"><span style="color:#ff5c5c;" id="target_velocity"></span></td>
+<td align="center"><span style="color:#5bec8d;" id="pendulum_angle"></span></td>
+<td align="center"><span style="color:#fd42ac;" id="target_angle"></span></td>
+<td align="center"><span style="color:#ff33ff;" id="kalAngleZ"></span></td>
+<td align="center"><span style="color:#4b8200;" id="gyroZrate"></span></td>
+		</tr>
+	 </table>
+            </td>
+        </tr>
+	</table>
+</body>
+</html>
