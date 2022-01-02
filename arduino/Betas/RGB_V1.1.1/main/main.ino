@@ -1,7 +1,9 @@
 /**
- * 自平衡莱洛三角形 RGB版  HW:Ver 1.5  FW:Ver 1.1.1
-  RGB版本程序 https://gitee.com/muyan3000/RGBFOC 基于45°(https://gitee.com/coll45/foc/)程序修改
-  arduino开发环境-灯哥开源FOChttps://gitee.com/ream_d/Deng-s-foc-controller，并安装Kalman。
+   自平衡莱洛三角形 RGB版  HW:Ver 1.5  FW:Ver 1.1.1
+   立创EDA https://oshwhub.com/muyan2020/zi-ping-heng-di-lai-luo-san-jiao_10-10-ban-ben_copy
+   RGB版本程序 https://gitee.com/muyan3000/RGBFOC 基于45°(https://gitee.com/coll45/foc/)程序修改
+   arduino开发环境-灯哥开源FOChttps://gitee.com/ream_d/Deng-s-foc-controller，并安装Kalman。
+
   FOC引脚32, 33, 25, 22    22为enable
   AS5600霍尔传感器 SDA-23 SCL-5  MPU6050六轴传感器 SDA-19 SCL-18
   本程序有两种平衡方式， FLAG_V为1时使用电压控制，为0时候速度控制。电压控制时LQR参数使用K1和K2，速度控制时LQR参数使用K3和K4
@@ -51,20 +53,22 @@ const int threshold_top = 20;   //触摸顶部阈值
 const int threshold_bottom = 1;   //触摸底部阈值，越接近数值越小
 const int threshold_count = 4;   //触摸计数器有效值，通常会有意外的自动触发
 
-int touchread[4] = {100,100,100,100}; //初始化触摸读取值为100，无触摸
+int touchread[4] = {100, 100, 100, 100}; //初始化触摸读取值为100，无触摸
 int touchDetected[4] = {}; //通过touchdetected持续计数判断是否按键，防止无触碰触发
 
 bool touch_touched[4] = {};   //单击判断
 int touch_touched_times[4] = {};  //单击次数，单击切换模式，双击
 int touch_touching_time[4] = {}; //持续触摸秒数，用于判断长按事件，长按关闭，长按开启，开启状态长按调光，
-bool touch_STATE[4] = {1,1,1,1}; // 定义按键触发对象状态变量初始值为true默认开启
+bool touch_STATE[4] = {1, 1, 1, 1}; // 定义按键触发对象状态变量初始值为true默认开启
 
 const char* username = "admin";     //web用户名
 const char* userpassword = "12345678"; //web用户密码
 const char* ServerName = "ESP32-LELO-RGB";
 char DateTimeStr[20]  = "1970-01-01 00:00:00";
-char Debug_Log[8192]  = "";
-bool log_control = 1;
+char Debug_Log[255][255];
+uint32_t loop_time_begin = millis();
+int debug_times;
+bool log_control = 0, debug_log_control = 0;
 
 WebServer ESP32Server(80);
 
@@ -213,6 +217,20 @@ void do_K43(char* cmd) {
   comm.scalar(&LQR_K4_3, cmd);
 }
 
+void Debug_Log_func(String debuglog, bool debug_begin = 0) {
+  uint32_t loop_time_end;
+  if (debug_log_control) {
+    if (debug_begin) {
+      loop_time_begin = millis();
+      sprintf(Debug_Log[debug_times], "%s Begin time:%d", debuglog.c_str(), loop_time_begin);
+    } else {
+      loop_time_end = millis();
+      sprintf(Debug_Log[debug_times], "%s\t%s End time:%d\tProcessed in %d ms\tFreeHeap:%d\r\n", Debug_Log[debug_times], debuglog.c_str(), loop_time_end, (loop_time_end - loop_time_begin), ESP.getFreeHeap());
+      debug_times++;
+    }
+  }
+}
+
 void onPacketCallBack(AsyncUDPPacket packet)
 {
   char* da;
@@ -224,6 +242,8 @@ void onPacketCallBack(AsyncUDPPacket packet)
 }
 // instantiate the commander
 void setup() {
+  Debug_Log_func("Before setup");
+  Debug_Log_func("setup", 1);
   Serial.begin(115200);
 
   pinMode(ACTIVE_PIN, OUTPUT);
@@ -244,6 +264,7 @@ void setup() {
   Serial.println(ESP.getMaxAllocHeap());
   //获取芯片可用内存
   printf("esp_get_free_heap_size : %d  \n", esp_get_free_heap_size());
+  printf("getFreeHeap : %d  \n", ESP.getFreeHeap());
   //获取从未使用过的最小内存
   printf("esp_get_minimum_free_heap_size : %d  \n", esp_get_minimum_free_heap_size());
 
@@ -429,16 +450,19 @@ void setup() {
 
   //运动控制模式设置
   motor.controller = MotionControlType::velocity;
-  
+
   //速度PI环设置
   motor.PID_velocity.P = v_p_1;
   motor.PID_velocity.I = v_i_1;
 
   //最大电机限制电压
-  motor.voltage_limit = 12;
+  motor.voltage_limit = 6;
 
   //速度低通滤波时间常数
-  motor.LPF_velocity.Tf = 0.02;
+  motor.LPF_velocity.Tf = 0.01f;
+
+  // angle P controller
+  motor.P_angle.P = 20;
 
   //设置最大速度限制
   motor.velocity_limit = 40;
@@ -469,17 +493,17 @@ void setup() {
 
   Serial.println("System is ready");
   Serial.println("-----------------------------------------------");
+
+  Debug_Log_func("setup");
 }
 
 char buf[255];
 long loop_count = 0;
 double last_pitch;
 void loop() {
+  Debug_Log_func("loop", 1);
   ArduinoOTA.handle();
   motor.loopFOC();
-  TenthSecondsSinceStartTask();
-  ESP32Server.handleClient();
-  delay(2);//allow the cpu to switch to other tasks
 
   while (i2cRead(0x3B, i2cData, 14));
   accX = (int16_t)((i2cData[0] << 8) | i2cData[1]);
@@ -584,6 +608,8 @@ void loop() {
   touchAttach(3, T4);
 
 
+  TenthSecondsSinceStartTask();
+
   //单击事件处理
   if (touch_touched[1]) {
     //Serial.print("\nLight1 touched ");
@@ -608,6 +634,7 @@ void loop() {
     FastLED.show();
   }
 
+  Debug_Log_func("loop");
 }
 /* mpu6050加速度转换为角度
             acc2rotation(ax, ay)
@@ -656,18 +683,18 @@ float controllerLQR(float p_angle, float p_vel, float m_vel)
     last_unstable_time = millis();
     if (stable)	//如果是稳态进入非稳态则调整为目标角度
     {
-      target_angle = EEPROM.readFloat(0);
+      target_angle = EEPROM.readFloat(0) - p_angle;
       stable = 0;
     }
   }
   if ((millis() - last_unstable_time) > 500 && !stable)	//非稳态进入稳态超过500ms检测，更新目标角为目标角+摆角，假设进入稳态
   {
-    target_angle  -= _sign(target_velocity) * 0.2;
+    target_angle  -= _sign(target_velocity) * 0.4;
     stable = 1;
   }
 
-  if ((millis() - last_stable_time) > 2500  && stable) { //稳态超过2000ms检测，更新目标角
-    if (abs(target_velocity) > 2.5 && abs(target_velocity) < 15) { //稳态速度偏大校正
+  if ((millis() - last_stable_time) > 2500 && stable) { //稳态超过2000ms检测，更新目标角
+    if (abs(target_velocity) > 3 && abs(target_velocity) < 10) { //稳态速度偏大校正
       last_stable_time = millis();
       target_angle  -= _sign(target_velocity) * 0.2;
     }
@@ -707,6 +734,8 @@ unsigned long LastMillis = 0;
 void TenthSecondsSinceStartTask() //100ms
 {
   unsigned long CurrentMillis = millis();
+  ESP32Server.handleClient();
+  delay(1);//allow the cpu to switch to other tasks
   if (abs(int(CurrentMillis - LastMillis)) > 100)
   {
     LastMillis = CurrentMillis;
@@ -857,6 +886,10 @@ String ProcessUpdate()    //页面更新
   ReturnString += TimeString(millis() / 1000);
 
   ReturnString += ",";
+  ReturnString += log_control;
+  ReturnString += ",";
+  ReturnString += debug_log_control;
+  ReturnString += ",";
   ReturnString += bat_voltage;
   if (log_control) {
     ReturnString += ",";
@@ -891,6 +924,18 @@ String ProcessUpdate()    //页面更新
   ReturnString += v_i_2;
   ReturnString += ",";
   ReturnString += v_p_2;
+  ReturnString += ",";
+  if (debug_log_control) {
+    for (int i = 0; i < debug_times; i++) {
+      if (String(Debug_Log[i]) != "") {
+        //Serial.println(Debug_Log[i]);
+        ReturnString += Debug_Log[i];
+        memset( Debug_Log[debug_times], 0, sizeof(Debug_Log[debug_times]) );
+      }
+      if (i == debug_times - 1)
+        debug_times = 0;
+    }
+  }
   //Serial.println(ReturnString);
   return ReturnString;
 }
@@ -953,11 +998,16 @@ void PocessControl(int DeviceType, int DeviceIndex, int Operation, float Operati
         printf("Reboot...");
         esp_restart();
       }
-    } else if (DeviceIndex == 5) {
+    } else if (DeviceIndex == 5) {  //参数记录输出控制
       if (Operation % SysIndex == 0)
         log_control = 0;
       else if (Operation % SysIndex == 1)
         log_control = 1;
+    } else if (DeviceIndex == 6) {  //DEBUG输出控制
+      if (Operation % SysIndex == 0)
+        debug_log_control = 0;
+      else if (Operation % SysIndex == 1)
+        debug_log_control = 1;
     }
   }
 
@@ -966,7 +1016,7 @@ void PocessControl(int DeviceType, int DeviceIndex, int Operation, float Operati
     if (Operation == 0)
     {
       sprintf(do_commd, "%.2f", Operation2);
-      Serial.println(do_commd);
+      //Serial.println(do_commd);
       if (DeviceIndex == 0)  //期望角度TA
       {
         do_TA(do_commd);
@@ -1061,7 +1111,7 @@ void handleNotFound()
         Operation = 0;
       }
 
-      printf("DeviceType:%d DeviceIndex:%d Operation:%d Operation2:%.2f\n", DeviceType, DeviceIndex, Operation, Operation2 );
+      //printf("DeviceType:%d DeviceIndex:%d Operation:%d Operation2:%.2f\n", DeviceType, DeviceIndex, Operation, Operation2 );
 
       PocessControl(DeviceType, DeviceIndex, Operation, Operation2);
     }
@@ -1153,7 +1203,7 @@ double return_voltage_value(int pin_no)
 }
 
 //触摸感应处理
-void touchAttach(int touchID, uint8_t touchPin){
+void touchAttach(int touchID, uint8_t touchPin) {
   touchread[touchID] = touchRead(touchPin);
   if ( touchread[touchID] <= threshold_top && touchread[touchID] > threshold_bottom ) { //达到触发值的计数
     //delay(38);  // 0.038秒
