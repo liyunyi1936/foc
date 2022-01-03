@@ -8,6 +8,7 @@ FW:Ver 1.2
 <title>自平衡莱洛三角形</title>
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
 <style>
 /*input框*/
 input, button {
@@ -19,6 +20,7 @@ input, button {
     border: 1px solid #ccc;
     padding: 7px 0;
     background: #F4F4F7;
+    text-align: center;
     border-radius: 3px;
     padding-left:5px;
     -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
@@ -79,7 +81,116 @@ input, button {
     -webkit-box-shadow: 0 2px 0 rgba(0,0,0,0.045);
     box-shadow: 0 2px 0 rgba(0,0,0,0.045);
 }
+
+/* 这里不考虑浏览器的兼容性 */
+#control input {
+    border: none;
+    background-color: transparent;
+    margin: 20px 0;
+    outline: none;
+}
+
+#control input[type="text"] {
+    width: 100%;
+    font-size: 25px;
+    appearance: none;
+    padding-bottom: 5px;
+    border-bottom: 3px solid #ededed;
+    color: #ededed;
+}
+
+#control input[type="range"] {
+    width: 100%;
+    -webkit-appearance: none;
+    /* background-color: silver; */
+    height: 8px;
+    border-radius: 4px;
+    background: -webkit-linear-gradient(#ffa200, #ffa200) no-repeat white;
+    background-size: 50% 100%;
+}
+
+#control input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    background-color: #aaa;
+    width: 8px;
+    height: 20px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#control input[type="range"]::-webkit-slider-thumb:hover {
+    background: #666;
+}
+
+#control #voltage {
+    background-size: 0% 100%;
+}
+
+#control #speed {
+    background: linear-gradient(to right, #ffa200, white 0%, white);
+    background-size: 100% 100%;
+}
+#control input[type="button"] {
+    padding: 5px;
+    margin: 5px 0;
+    background: linear-gradient(to bottom right, red 10%, white 90%);
+    border: 0px;
+    width: 100%;
+    color: white;
+    font-weight: white;
+}
 </style>
+<script type="text/javascript" src="jquery.js"></script> 
+<script type="text/javascript" src="highcharts.js"></script>
+
+<script type="text/javascript">
+var ShaftVelocity;
+
+$(function () {
+$(document).ready(function() {
+	Highcharts.setOptions({global: {useUTC: false} });
+	var chart;
+	$('#container').highcharts({    
+		chart: {type: 'spline',  animation: Highcharts.svg, marginRight: 10, events: { 
+				load: function() {   
+					// set up the updating of the chart each second 
+					var series = this.series[0];  
+					setInterval(function() {
+						var x = (new Date()).getTime(), 	y = parseFloat(ShaftVelocity); 
+						series.addPoint([x, y], true, true);
+					}, 1000); 
+				} 
+			}   
+		},      
+		title: {text: '动态走势图' },      
+		xAxis: {type: 'datetime', tickPixelInterval: 100 },
+		yAxis: {title: {text: '动态走势图' },  plotLines: [{value: 0, width: 1, color: '#808080' }] },
+		tooltip: {
+			formatter: function() {
+				return '<b>'+ this.series.name +'</b><br/>'+ 
+				Highcharts.dateFormat('%Y-%m-%d %H:%M:%S', this.x) +'<br/>'+
+				Highcharts.numberFormat(this.y, 2); 
+				}
+		},
+		legend: { enabled: false },
+		exporting: { enabled: false},    
+		series: [{name: 'ShaftVelocity',
+			data: (function() {
+				// generate an array of random data  
+				var data = [], time = (new Date()).getTime(), i;
+				for (i = -30; i <= 0; i++) {
+					data.push({
+						x: time + i * 1000, 
+						y: 0 
+					}); 
+				} 
+				return data;  
+			})()
+		}]
+	});
+}); 
+});
+</script>
 <script>
 function loadXMLDoc(path,element)
 {
@@ -128,37 +239,50 @@ function UpdateInfo()
             document.getElementById('CurrentMillis').innerHTML=arr[1];
 			document.getElementById('log_control').value==arr[2];
 			document.getElementById('debug_log_control').value==arr[3];
-            document.getElementById('BAT_VOLTAGE').innerHTML=arr[4];
-
-			if(document.getElementById('log_control').value=="1" && arr[5]!=""){
-            document.getElementById('Shaft_Velocity').innerHTML	=arr[5]+"<br>"+document.getElementById('Shaft_Velocity').innerHTML;
-            document.getElementById('motor_voltage_q').innerHTML=arr[6]+"<br>"+document.getElementById('motor_voltage_q').innerHTML;
-            document.getElementById('target_velocity').innerHTML=arr[7]+"<br>"+document.getElementById('target_velocity').innerHTML;
-            document.getElementById('pendulum_angle').innerHTML=arr[8]+"<br>"+document.getElementById('pendulum_angle').innerHTML;
-            document.getElementById('target_angle').innerHTML=arr[9]+"<br>"+document.getElementById('target_angle').innerHTML;
-            document.getElementById('kalAngleZ').innerHTML=arr[10]+"<br>"+document.getElementById('kalAngleZ').innerHTML;
-            document.getElementById('gyroZrate').innerHTML=arr[11]+"<br>"+document.getElementById('gyroZrate').innerHTML;
+			document.getElementById('test_flag').value==arr[4];
+			if(arr[4]==2){
+				document.getElementById('tvv_btn').innerHTML=='关闭电压测试';
+				document.getElementById('tvq_btn').innerHTML='开启速度测试';
+			}else if(arr[4]==1){
+				document.getElementById('tvv_btn').innerHTML=='开启电压测试';
+				document.getElementById('tvq_btn').innerHTML='关闭速度测试';
+			}else{
+				document.getElementById('tvv_btn').innerHTML=='开启电压测试';
+				document.getElementById('tvq_btn').innerHTML='开启速度测试';
 			}
+            document.getElementById('BAT_VOLTAGE').innerHTML=arr[5];
 
-            document.getElementById('target_angle_ROM').innerHTML=arr[12];
-            document.getElementById('swing_up_voltage').innerHTML=arr[13];
-            document.getElementById('swing_up_angle').innerHTML=arr[14];
-            document.getElementById('v_i_1').innerHTML=arr[15];
-            document.getElementById('v_p_1').innerHTML=arr[16];
-            document.getElementById('v_i_2').innerHTML=arr[17];
-            document.getElementById('v_p_2').innerHTML=arr[18];
+            document.getElementById('target_angle_ROM').innerHTML=arr[6];
+            document.getElementById('swing_up_voltage').innerHTML=arr[7];
+            document.getElementById('swing_up_angle').innerHTML=arr[8];
+            document.getElementById('v_i_1').innerHTML=arr[9];
+            document.getElementById('v_p_2').innerHTML=arr[10];
+            document.getElementById('v_i_2').innerHTML=arr[11];
+            document.getElementById('v_p_2').innerHTML=arr[12];
 
-			if(document.getElementById('target_angle_ROM2').value=="") document.getElementById('target_angle_ROM2').value=arr[12];
-			if(document.getElementById('swing_up_voltage2').value=="") document.getElementById('swing_up_voltage2').value=arr[13];
-			if(document.getElementById('swing_up_angle2').value=="") document.getElementById('swing_up_angle2').value=arr[14];
-			if(document.getElementById('v_i_12').value=="") document.getElementById('v_i_12').value=arr[15];
-			if(document.getElementById('v_p_12').value=="") document.getElementById('v_p_12').value=arr[16];
-			if(document.getElementById('v_i_22').value=="") document.getElementById('v_i_22').value=arr[17];
-			if(document.getElementById('v_p_22').value=="") document.getElementById('v_p_22').value=arr[18];
+			if(document.getElementById('target_angle_ROM2').value=="") document.getElementById('target_angle_ROM2').value=arr[6];
+			if(document.getElementById('swing_up_voltage2').value=="") document.getElementById('swing_up_voltage2').value=arr[7];
+			if(document.getElementById('swing_up_angle2').value=="") document.getElementById('swing_up_angle2').value=arr[8];
+			if(document.getElementById('v_i_12').value=="") document.getElementById('v_i_12').value=arr[9];
+			if(document.getElementById('v_p_12').value=="") document.getElementById('v_p_12').value=arr[10];
+			if(document.getElementById('v_i_22').value=="") document.getElementById('v_i_22').value=arr[11];
+			if(document.getElementById('v_p_22').value=="") document.getElementById('v_p_22').value=arr[12];
+
+			if(document.getElementById('log_control').value=="1" && arr[13]!=""){
+				ShaftVelocity	= arr[13];
+				document.getElementById('Shaft_Velocity').innerHTML	=arr[13]+"<br>"+document.getElementById('Shaft_Velocity').innerHTML;
+				document.getElementById('motor_voltage_q').innerHTML=arr[14]+"<br>"+document.getElementById('motor_voltage_q').innerHTML;
+				document.getElementById('target_velocity').innerHTML=arr[15]+"<br>"+document.getElementById('target_velocity').innerHTML;
+				document.getElementById('pendulum_angle').innerHTML=arr[16]+"<br>"+document.getElementById('pendulum_angle').innerHTML;
+				document.getElementById('target_angle').innerHTML=arr[17]+"<br>"+document.getElementById('target_angle').innerHTML;
+				document.getElementById('pitch').innerHTML=arr[18]+"<br>"+document.getElementById('pitch').innerHTML;
+				document.getElementById('kalAngleZ').innerHTML=arr[19]+"<br>"+document.getElementById('kalAngleZ').innerHTML;
+				document.getElementById('gyroZrate').innerHTML=arr[20]+"<br>"+document.getElementById('gyroZrate').innerHTML;
+			}
 			
 			if(document.getElementById('debug_log_control').value=="1"){
 				document.getElementById('debug_log').style.display='block';
-				document.getElementById('debug_log').value	+=	arr[19];
+				document.getElementById('debug_log').value	+=	arr[21];
 			}
         }
     }
@@ -174,17 +298,18 @@ function UpdateInfo()
 
     function clearLog()
     { 
-            document.getElementById('Shaft_Velocity').innerHTML			="";
-            document.getElementById('motor_voltage_q').innerHTML		="";
-            document.getElementById('target_velocity').innerHTML		="";
-            document.getElementById('pendulum_angle').innerHTML		="";
-            document.getElementById('target_angle').innerHTML			="";
-            document.getElementById('kalAngleZ').innerHTML				="";
-            document.getElementById('gyroZrate').innerHTML				="";
+            document.getElementById('Shaft_Velocity').innerHTML ="";
+            document.getElementById('motor_voltage_q').innerHTML ="";
+            document.getElementById('target_velocity').innerHTML ="";
+            document.getElementById('pendulum_angle').innerHTML ="";
+            document.getElementById('target_angle').innerHTML ="";
+            document.getElementById('pitch').innerHTML ="";
+            document.getElementById('kalAngleZ').innerHTML ="";
+            document.getElementById('gyroZrate').innerHTML ="";
     } 
     function clearDebugLog()
     { 
-            document.getElementById('debug_log').value			="";
+            document.getElementById('debug_log').value ="";
     } 
 
 function checkNum(obj) {
@@ -200,20 +325,23 @@ function checkNum(obj) {
          }
      }
  };
+
+
  </script>
 </head>
 <body style="background-color:black;color:white">
 
 
-    <font size=6>自平衡莱洛三角形
-        <div id="TimeDiv" hidden>datetime</div>
+    <font size=6 onclick="(document.getElementById('debug_hidden').value%6==5)?(document.getElementById('debug_show').style.display='block'):document.getElementById('debug_hidden').value++;">自平衡莱洛三角形
+        <input id="debug_hidden" hidden>
+        <span id="TimeDiv" hidden>datetime</Span>
     </font>
 </div>
     <table border="0">
         <tr>
             <td height="50">已启动：<span id=CurrentMillis></span>
 			&nbsp;&nbsp;&nbsp;&nbsp;电池电压：<span id="BAT_VOLTAGE" style="color:#de87b8;"></span> V
-			<span id="OperationHit"></span>
+			<span id="OperationHit" style="color:#ffa200;"></span>
             </td>
         </tr>
         <tr>
@@ -288,6 +416,28 @@ function checkNum(obj) {
         </tr>
         <tr>
             <td>
+    <table border="0" cellspacing="0" cellpadding="0" ID="control" width="100%">
+		<tr>
+            <td height="50" width="50"><button type="button" class="ant-btn ant-btn-red" onclick="(this.innerHTML=='关闭速度测试'?(this.innerHTML='开启速度测试'):this.innerHTML='关闭速度测试');(document.getElementById('tvv_btn').innerHTML=='关闭电压测试'?(document.getElementById('tvv_btn').innerHTML='开启电压测试'):'');loadXMLDoc('/Control?Type=1&Index=77&Operation=0','OperationHit')" id="tvq_btn">开启速度测试</button></td>
+			<td width="40" align="center"><span id="speedNum">0</span></td>
+            <td><input type="range" id="speed" value="0" min="-100" max="100" step="1"  onchange="changeV()"></td>
+		</tr>
+		<tr>
+            <td height="50" width="50"><button type="button" class="ant-btn ant-btn-red" onclick="(this.innerHTML=='关闭电压测试'?(this.innerHTML='开启电压测试'):this.innerHTML='关闭电压测试');(document.getElementById('tvq_btn').innerHTML=='关闭速度测试'?(document.getElementById('tvq_btn').innerHTML='开启速度测试'):'');loadXMLDoc('/Control?Type=1&Index=88&Operation=0','OperationHit')" id="tvv_btn">开启电压测试</button></td>
+			<td width="40" align="center"><span id="voltageNum">0</span></td>
+            <td>
+		<input type="hidden" name="test_flag" id="test_flag">
+		<input type="range" id="voltage" value="0" min="-12" max="12" step="1" onchange="changeV()">
+		</td>
+		</tr>
+	 </table>
+            </td>
+        </tr>
+        <tr>
+            <td>
+    <table border="0" cellspacing="0" cellpadding="0" ID="debug_show" width="100%" style="display:none">
+        <tr>
+            <td>
 		<button type="button" onclick="document.getElementById('debug_log_control').value=1;loadXMLDoc('/Control?Type=0&Index=6&Operation=1','OperationHit');document.getElementById('debug_log').style.display='block';">开启Debug</button>
 		<button type="button" onclick="document.getElementById('debug_log_control').value=0;loadXMLDoc('/Control?Type=0&Index=6&Operation=0','OperationHit');">关闭Debug</button>
 		<button type="button" onclick="document.getElementById('debug_log').style.display='block';">显示记录</button>
@@ -298,6 +448,9 @@ function checkNum(obj) {
         </tr>
         <tr>
             <td align="left"><textarea name="debug_log" rows="10" cols="80"  id="debug_log" style="display:none"></textarea></td>
+		</tr>
+	 </table>
+	 </td>
 		</tr>
         <tr>
             <td height="50">
@@ -311,13 +464,24 @@ function checkNum(obj) {
         </tr>
         <tr>
             <td align="left">
+    <table border="1" cellspacing="0" cellpadding="0" ID="logchart" width="100%">
+		<tr>
+            <td align="center"><div id="container" style="width:700px;height:400px;margin:0 auto;"></div>
+<div style="text-align:center;clear:both;"></td>
+		</tr>
+	</table>
+	</td>
+		</tr>
+        <tr>
+            <td align="left">
     <table border="1" cellspacing="0" cellpadding="0" ID="loglist" width="100%">
 		<tr>
-            <td align="center"><span style="color:#ff5c5c;">Shaft Velocity</span></td>
-			<td align="center"><span style="color:#398ad9;">motor voltage q</span></td>
-			<td align="center"><span style="color:#ff5c5c;">target_velocity</span></td>
-			<td align="center"><span style="color:#5bec8d;">pendulum_angle</span></td>
-			<td align="center"><span style="color:#fd42ac;">target_angle</span></td>
+            <td align="center"><span style="color:#ff5c5c;">Shaft<br>Velocity</span></td>
+			<td align="center"><span style="color:#398ad9;">motor<br>voltage q</span></td>
+			<td align="center"><span style="color:#ff5c5c;">target<br>velocity</span></td>
+			<td align="center"><span style="color:#5bec8d;">pendulum<br>angle</span></td>
+			<td align="center"><span style="color:#fd42ac;">target<br>angle</span></td>
+			<td align="center"><span style="color:#4b8200;">pitch</span></td>
 			<td align="center"><span style="color:#ff33ff;">kalAngleZ</span></td>
 			<td align="center"><span style="color:#4b8200;">gyroZrate</span></td>
        </tr>
@@ -327,9 +491,41 @@ function checkNum(obj) {
 <td align="center"><span style="color:#ff5c5c;" id="target_velocity"></span></td>
 <td align="center"><span style="color:#5bec8d;" id="pendulum_angle"></span></td>
 <td align="center"><span style="color:#fd42ac;" id="target_angle"></span></td>
+<td align="center"><span style="color:#4b8200;" id="pitch"></span></td>
 <td align="center"><span style="color:#ff33ff;" id="kalAngleZ"></span></td>
 <td align="center"><span style="color:#4b8200;" id="gyroZrate"></span></td>
 		</tr>
 	</table>
+	</td>
+		</tr>
+	 </table>
+
+<script>
+const voltage = document.getElementById('voltage');
+const speed = document.getElementById('speed');
+
+function changeV() {
+    voltageVal = parseFloat(voltage.value);
+    spdVal = parseFloat(speed.value);
+    const voltagePercent = Math.abs(parseFloat(voltageVal/12, 2) * 50)
+    const speedPercent = Math.abs(parseFloat((spdVal/100), 2) * 100)*1.5
+	if (voltageVal<0)
+		voltage.style.background = `linear-gradient(to right, #ffa200 ${voltagePercent}%, white ${voltagePercent}%`
+	else
+		voltage.style.background = `linear-gradient(to left, #ffa200 ${voltagePercent}%, white ${voltagePercent}%`
+	if (spdVal<0)
+		speed.style.background = `linear-gradient(to right, #ffa200, white ${speedPercent}%`
+	else
+		speed.style.background = `linear-gradient(to left, #ffa200, white ${speedPercent}%`
+	document.getElementById('voltageNum').innerHTML = voltageVal;
+	document.getElementById('speedNum').innerHTML = spdVal;
+	if( document.getElementById('test_flag').value=='1' ){
+		loadXMLDoc('/Control?Type=1&Index=7&Operation='+spdVal,'OperationHit');
+	}
+	if( document.getElementById('test_flag').value=='2' ){
+		loadXMLDoc('/Control?Type=1&Index=8&Operation='+voltageVal,'OperationHit');
+	}
+};
+</script>
 </body>
 </html>
