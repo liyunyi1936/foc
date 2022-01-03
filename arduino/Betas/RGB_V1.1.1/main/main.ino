@@ -514,8 +514,9 @@ void loop() {
   double pitch = acc2rotation(accX, accY);
   //double pitch2 = atan(-accX / sqrt(accY * accY + accZ * accZ)) * RAD_TO_DEG;
   double gyroZrate = gyroZ / 131.0; // Convert to deg/s
-  if (abs(pitch - last_pitch) > 100)
-    kalmanZ.setAngle(pitch);
+  if (abs(pitch - last_pitch) > 100){
+    //kalmanZ.setAngle(pitch);
+  }
 
   kalAngleZ = kalmanZ.getAngle(pitch, gyroZrate + gyroZ_OFF, dt);
   last_pitch = pitch;
@@ -629,23 +630,34 @@ void loop() {
   TenthSecondsSinceStartTask();
 }
 
-
 /* mpu6050加速度转换为角度
             acc2rotation(ax, ay)
             acc2rotation(az, ay) */
 double acc2rotation(double x, double y)
 {
+  double tmp_kalAngleZ = (atan(x / y) / 1.570796 * 90);
   if (y < 0)
   {
-    return atan(x / y) / 1.570796 * 90 + 180;
+    return (tmp_kalAngleZ + 180);
   }
   else if (x < 0)
   {
-    return (atan(x / y) / 1.570796 * 90 + 360);
+    //将当前值与前值比较，当前差值大于100则认为异常
+    if (!isnan(kalAngleZ) && (tmp_kalAngleZ + 360 - kalAngleZ) > 100) {
+      //Serial.print("X<0"); Serial.print("\t");
+      //Serial.print(tmp_kalAngleZ); Serial.print("\t");
+      //Serial.print(kalAngleZ); Serial.print("\t");
+      //Serial.print("\r\n");
+      if (tmp_kalAngleZ < 0 && kalAngleZ < 0) //按键右边角
+        return tmp_kalAngleZ;
+      else  //按键边异常处理
+        return tmp_kalAngleZ;
+    } else
+      return (tmp_kalAngleZ + 360);
   }
   else
   {
-    return (atan(x / y) / 1.570796 * 90);
+    return tmp_kalAngleZ;
   }
 }
 
@@ -884,26 +896,9 @@ String ProcessUpdate()    //页面更新
   ReturnString += ",";
   ReturnString += debug_log_control;
   ReturnString += ",";
+  ReturnString += test_flag;
+  ReturnString += ",";
   ReturnString += bat_voltage;
-  if (log_control) {
-    ReturnString += ",";
-    ReturnString += motor.shaftVelocity();
-    ReturnString += ",";
-    ReturnString += motor.voltage.q;
-    ReturnString += ",";
-    ReturnString += target_velocity;
-    ReturnString += ",";
-    ReturnString += pendulum_angle;
-    ReturnString += ",";
-    ReturnString += target_angle;
-    ReturnString += ",";
-    ReturnString += kalAngleZ;
-    ReturnString += ",";
-    ReturnString += gyroZangle;
-  } else {
-    ReturnString += ",,,,,,,";
-  }
-
   ReturnString += ",";
   ReturnString += EEPROM.readFloat(0);
   ReturnString += ",";
@@ -918,6 +913,28 @@ String ProcessUpdate()    //页面更新
   ReturnString += v_i_2;
   ReturnString += ",";
   ReturnString += v_p_2;
+  
+  if (log_control) {
+    ReturnString += ",";
+    ReturnString += motor.shaftVelocity();
+    ReturnString += ",";
+    ReturnString += motor.voltage.q;
+    ReturnString += ",";
+    ReturnString += target_velocity;
+    ReturnString += ",";
+    ReturnString += pendulum_angle;
+    ReturnString += ",";
+    ReturnString += target_angle;
+    ReturnString += ",";
+    ReturnString += last_pitch;
+    ReturnString += ",";
+    ReturnString += kalAngleZ;
+    ReturnString += ",";
+    ReturnString += gyroZangle;
+  } else {
+    ReturnString += ",,,,,,,";
+  }
+  
   ReturnString += ",";
   if (debug_log_control) {
     Debug_Log_func("debug print begin",1);
@@ -1035,6 +1052,26 @@ void PocessControl(int DeviceType, int DeviceIndex, int Operation, float Operati
       } else if (DeviceIndex == 6)  //速度环I2
       {
         do_vi2(do_commd);
+      } else if (DeviceIndex == 7)  //do_VQ
+      {
+        do_VQ(do_commd);
+      } else if (DeviceIndex == 8)  //do_VV
+      {
+        do_VV(do_commd);
+      } else if (DeviceIndex == 77)  //TVQ
+      {
+        do_TVQ(do_commd);
+        if (test_flag == 1)
+          ReturnString += "打开电机速度测试";
+        else
+          ReturnString += "关闭电机速度测试";
+      } else if (DeviceIndex == 88)  //TVV
+      {
+        do_TVV(do_commd);
+        if (test_flag == 2)
+          ReturnString += "打开电机电压测试";
+        else
+          ReturnString += "关闭电机电压测试";
       } else if (DeviceIndex == 99)  //电机启停
       {
         do_MOTOR(do_commd);
@@ -1044,7 +1081,6 @@ void PocessControl(int DeviceType, int DeviceIndex, int Operation, float Operati
           ReturnString += "电机停机...";
       }
       EEPROM.commit();
-
     }
   }
   ESP32Server.send(200, "text/plain", ReturnString);
@@ -1088,6 +1124,18 @@ void handleNotFound()
   //如果是主页请求，则发送FLASH中的index.html文件
   if (webAddress.endsWith("/")) {                   // 如果访问地址以"/"为结尾
     webAddress = "/index.html";                     // 则将访问地址修改为/index.html便于SPIFFS访问
+
+    // 通过handleFileRead函数处处理用户访问
+    handleFileRead(webAddress);
+  }
+  else if (webAddress.endsWith("jquery.js")) {
+    webAddress = "/jquery.js";
+
+    // 通过handleFileRead函数处处理用户访问
+    handleFileRead(webAddress);
+  }
+  else if (webAddress.endsWith("highcharts.js")) {
+    webAddress = "/highcharts.js";
 
     // 通过handleFileRead函数处处理用户访问
     handleFileRead(webAddress);
