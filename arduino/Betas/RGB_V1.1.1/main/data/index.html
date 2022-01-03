@@ -130,7 +130,7 @@ function UpdateInfo()
 			document.getElementById('debug_log_control').value==arr[3];
             document.getElementById('BAT_VOLTAGE').innerHTML=arr[4];
 
-			if(document.getElementById('log_control').value=="1"){
+			if(document.getElementById('log_control').value=="1" && arr[5]!=""){
             document.getElementById('Shaft_Velocity').innerHTML	=arr[5]+"<br>"+document.getElementById('Shaft_Velocity').innerHTML;
             document.getElementById('motor_voltage_q').innerHTML=arr[6]+"<br>"+document.getElementById('motor_voltage_q').innerHTML;
             document.getElementById('target_velocity').innerHTML=arr[7]+"<br>"+document.getElementById('target_velocity').innerHTML;
