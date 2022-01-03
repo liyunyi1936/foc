@@ -217,17 +217,12 @@ void do_K43(char* cmd) {
   comm.scalar(&LQR_K4_3, cmd);
 }
 
-void Debug_Log_func(String debuglog, bool debug_begin = 0) {
-  uint32_t loop_time_end;
-  if (debug_log_control) {
-    if (debug_begin) {
-      loop_time_begin = millis();
-      sprintf(Debug_Log[debug_times], "%s Begin time:%d", debuglog.c_str(), loop_time_begin);
-    } else {
-      loop_time_end = millis();
-      sprintf(Debug_Log[debug_times], "%s\t%s End time:%d\tProcessed in %d ms\tFreeHeap:%d\r\n", Debug_Log[debug_times], debuglog.c_str(), loop_time_end, (loop_time_end - loop_time_begin), ESP.getFreeHeap());
+void Debug_Log_func(String debuglog, bool debug_control=debug_log_control) {
+  if (debug_control) {
+      uint32_t tmp_loop_time_begin = millis();
+      sprintf(Debug_Log[debug_times], "%s\r\nBegin time:%d\tEnd time:%d\tProcessed in %d ms\tFreeHeap:%d\r\n%s", Debug_Log[debug_times], loop_time_begin, tmp_loop_time_begin, (tmp_loop_time_begin - loop_time_begin), ESP.getFreeHeap(), debuglog.c_str());
+      loop_time_begin = tmp_loop_time_begin;
       debug_times++;
-    }
   }
 }
 
@@ -242,8 +237,7 @@ void onPacketCallBack(AsyncUDPPacket packet)
 }
 // instantiate the commander
 void setup() {
-  Debug_Log_func("Before setup");
-  Debug_Log_func("setup", 1);
+  Debug_Log_func("Before setup",1);
   Serial.begin(115200);
 
   pinMode(ACTIVE_PIN, OUTPUT);
@@ -494,14 +488,14 @@ void setup() {
   Serial.println("System is ready");
   Serial.println("-----------------------------------------------");
 
-  Debug_Log_func("setup");
+  Debug_Log_func("setup",1);
 }
 
 char buf[255];
 long loop_count = 0;
 double last_pitch;
 void loop() {
-  Debug_Log_func("loop", 1);
+  Debug_Log_func("loop");
   ArduinoOTA.handle();
   motor.loopFOC();
 
@@ -541,7 +535,7 @@ void loop() {
     {
       target_velocity = controllerLQR(pendulum_angle, gyroZrate, motor.shaftVelocity());
       if (abs(target_velocity) > 140)
-        //target_velocity = _sign(target_velocity) * 140;
+        target_velocity = _sign(target_velocity) * 140;
 
         motor.controller = MotionControlType::velocity;
       motor.move(target_velocity);
@@ -608,8 +602,6 @@ void loop() {
   touchAttach(3, T4);
 
 
-  TenthSecondsSinceStartTask();
-
   //单击事件处理
   if (touch_touched[1]) {
     //Serial.print("\nLight1 touched ");
@@ -634,8 +626,10 @@ void loop() {
     FastLED.show();
   }
 
-  Debug_Log_func("loop");
+  TenthSecondsSinceStartTask();
 }
+
+
 /* mpu6050加速度转换为角度
             acc2rotation(ax, ay)
             acc2rotation(az, ay) */
@@ -926,16 +920,17 @@ String ProcessUpdate()    //页面更新
   ReturnString += v_p_2;
   ReturnString += ",";
   if (debug_log_control) {
-    for (int i = 0; i < debug_times; i++) {
-      if (String(Debug_Log[i]) != "") {
-        //Serial.println(Debug_Log[i]);
+    Debug_Log_func("debug print begin",1);
+    int i = 0;
+    while(strlen(Debug_Log[debug_times-1]) != 0){
         ReturnString += Debug_Log[i];
-        memset( Debug_Log[debug_times], 0, sizeof(Debug_Log[debug_times]) );
-      }
-      if (i == debug_times - 1)
-        debug_times = 0;
+        memset( Debug_Log[i], 0, strlen(Debug_Log[i]) );
+        i++;
     }
+    debug_times = 0;
+    Debug_Log_func("debug print end",1);
   }
+
   //Serial.println(ReturnString);
   return ReturnString;
 }
@@ -1004,10 +999,12 @@ void PocessControl(int DeviceType, int DeviceIndex, int Operation, float Operati
       else if (Operation % SysIndex == 1)
         log_control = 1;
     } else if (DeviceIndex == 6) {  //DEBUG输出控制
-      if (Operation % SysIndex == 0)
+      if (Operation % SysIndex == 0){
         debug_log_control = 0;
-      else if (Operation % SysIndex == 1)
+      }else if (Operation % SysIndex == 1){
+        Debug_Log_func("DEBUG OUT", 1);
         debug_log_control = 1;
+      }
     }
   }
 
