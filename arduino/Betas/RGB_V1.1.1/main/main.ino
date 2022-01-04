@@ -217,12 +217,12 @@ void do_K43(char* cmd) {
   comm.scalar(&LQR_K4_3, cmd);
 }
 
-void Debug_Log_func(String debuglog, bool debug_control=debug_log_control) {
+void Debug_Log_func(String debuglog, bool debug_control = debug_log_control) {
   if (debug_control) {
-      uint32_t tmp_loop_time_begin = millis();
-      sprintf(Debug_Log[debug_times], "%s\r\nBegin time:%d\tEnd time:%d\tProcessed in %d ms\tFreeHeap:%d\r\n%s", Debug_Log[debug_times], loop_time_begin, tmp_loop_time_begin, (tmp_loop_time_begin - loop_time_begin), ESP.getFreeHeap(), debuglog.c_str());
-      loop_time_begin = tmp_loop_time_begin;
-      debug_times++;
+    uint32_t tmp_loop_time_begin = millis();
+    sprintf(Debug_Log[debug_times], "%s\r\nBegin time:%d\tEnd time:%d\tProcessed in %d ms\tFreeHeap:%d\r\n%s", Debug_Log[debug_times], loop_time_begin, tmp_loop_time_begin, (tmp_loop_time_begin - loop_time_begin), ESP.getFreeHeap(), debuglog.c_str());
+    loop_time_begin = tmp_loop_time_begin;
+    debug_times++;
   }
 }
 
@@ -237,7 +237,7 @@ void onPacketCallBack(AsyncUDPPacket packet)
 }
 // instantiate the commander
 void setup() {
-  Debug_Log_func("Before setup",1);
+  Debug_Log_func("Before setup", 1);
   Serial.begin(115200);
 
   pinMode(ACTIVE_PIN, OUTPUT);
@@ -488,7 +488,7 @@ void setup() {
   Serial.println("System is ready");
   Serial.println("-----------------------------------------------");
 
-  Debug_Log_func("setup",1);
+  Debug_Log_func("setup", 1);
 }
 
 char buf[255];
@@ -514,7 +514,7 @@ void loop() {
   double pitch = acc2rotation(accX, accY);
   //double pitch2 = atan(-accX / sqrt(accY * accY + accZ * accZ)) * RAD_TO_DEG;
   double gyroZrate = gyroZ / 131.0; // Convert to deg/s
-  if (abs(pitch - last_pitch) > 100){
+  if (abs(pitch - last_pitch) > 100) {
     //kalmanZ.setAngle(pitch);
   }
 
@@ -538,7 +538,7 @@ void loop() {
       if (abs(target_velocity) > 140)
         target_velocity = _sign(target_velocity) * 140;
 
-        motor.controller = MotionControlType::velocity;
+      motor.controller = MotionControlType::velocity;
       motor.move(target_velocity);
     }
     else // else do swing-up
@@ -913,7 +913,7 @@ String ProcessUpdate()    //页面更新
   ReturnString += v_i_2;
   ReturnString += ",";
   ReturnString += v_p_2;
-  
+
   if (log_control) {
     ReturnString += ",";
     ReturnString += motor.shaftVelocity();
@@ -932,20 +932,20 @@ String ProcessUpdate()    //页面更新
     ReturnString += ",";
     ReturnString += gyroZangle;
   } else {
-    ReturnString += ",,,,,,,";
+    ReturnString += ",,,,,,,,";
   }
-  
+
   ReturnString += ",";
   if (debug_log_control) {
-    Debug_Log_func("debug print begin",1);
+    Debug_Log_func("debug print begin", 1);
     int i = 0;
-    while(strlen(Debug_Log[debug_times-1]) != 0){
-        ReturnString += Debug_Log[i];
-        memset( Debug_Log[i], 0, strlen(Debug_Log[i]) );
-        i++;
+    while (strlen(Debug_Log[debug_times - 1]) != 0) {
+      ReturnString += Debug_Log[i];
+      memset( Debug_Log[i], 0, strlen(Debug_Log[i]) );
+      i++;
     }
     debug_times = 0;
-    Debug_Log_func("debug print end",1);
+    Debug_Log_func("debug print end", 1);
   }
 
   //Serial.println(ReturnString);
@@ -970,7 +970,6 @@ void PocessControl(int DeviceType, int DeviceIndex, int Operation, float Operati
   {
     if (DeviceIndex == 0)
     {
-
       if (Operation % SysIndex == 0)
       {
         touch_STATE[1] = true;
@@ -1016,9 +1015,9 @@ void PocessControl(int DeviceType, int DeviceIndex, int Operation, float Operati
       else if (Operation % SysIndex == 1)
         log_control = 1;
     } else if (DeviceIndex == 6) {  //DEBUG输出控制
-      if (Operation % SysIndex == 0){
+      if (Operation % SysIndex == 0) {
         debug_log_control = 0;
-      }else if (Operation % SysIndex == 1){
+      } else if (Operation % SysIndex == 1) {
         Debug_Log_func("DEBUG OUT", 1);
         debug_log_control = 1;
       }
@@ -1062,16 +1061,16 @@ void PocessControl(int DeviceType, int DeviceIndex, int Operation, float Operati
       {
         do_TVQ(do_commd);
         if (test_flag == 1)
-          ReturnString += "打开电机速度测试";
+          ReturnString += "打开电机电压测试";
         else
-          ReturnString += "关闭电机速度测试";
+          ReturnString += "关闭电机电压测试";
       } else if (DeviceIndex == 88)  //TVV
       {
         do_TVV(do_commd);
         if (test_flag == 2)
-          ReturnString += "打开电机电压测试";
+          ReturnString += "打开电机速度测试";
         else
-          ReturnString += "关闭电机电压测试";
+          ReturnString += "关闭电机速度测试";
       } else if (DeviceIndex == 99)  //电机启停
       {
         do_MOTOR(do_commd);
@@ -1156,7 +1155,7 @@ void handleNotFound()
         Operation = 0;
       }
 
-      //printf("DeviceType:%d DeviceIndex:%d Operation:%d Operation2:%.2f\n", DeviceType, DeviceIndex, Operation, Operation2 );
+      printf("DeviceType:%d DeviceIndex:%d Operation:%d Operation2:%.2f\n", DeviceType, DeviceIndex, Operation, Operation2 );
 
       PocessControl(DeviceType, DeviceIndex, Operation, Operation2);
     }
