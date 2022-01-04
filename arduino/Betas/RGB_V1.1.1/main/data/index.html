@@ -6,9 +6,10 @@ FW:Ver 1.2
 <html lang="zh-cn">
 <head>
 <title>自平衡莱洛三角形</title>
-<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+ <meta http-equiv="Cache-Control" content="max-age=7200" />
 <meta content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
 <style>
 /*input框*/
 input, button {
@@ -237,18 +238,18 @@ function UpdateInfo()
 
             document.getElementById('TimeDiv').innerHTML=arr[0];
             document.getElementById('CurrentMillis').innerHTML=arr[1];
-			document.getElementById('log_control').value==arr[2];
-			document.getElementById('debug_log_control').value==arr[3];
-			document.getElementById('test_flag').value==arr[4];
+			document.getElementById('log_control').value=arr[2];
+			document.getElementById('debug_log_control').value=arr[3];
+			document.getElementById('test_flag').value=arr[4];
 			if(arr[4]==2){
-				document.getElementById('tvv_btn').innerHTML=='关闭电压测试';
-				document.getElementById('tvq_btn').innerHTML='开启速度测试';
+				document.getElementById('tvv_btn').innerHTML='关闭速度测试';
+				document.getElementById('tvq_btn').innerHTML='开启电压测试';
 			}else if(arr[4]==1){
-				document.getElementById('tvv_btn').innerHTML=='开启电压测试';
-				document.getElementById('tvq_btn').innerHTML='关闭速度测试';
+				document.getElementById('tvq_btn').innerHTML='关闭电压测试';
+				document.getElementById('tvv_btn').innerHTML='开启速度测试';
 			}else{
-				document.getElementById('tvv_btn').innerHTML=='开启电压测试';
-				document.getElementById('tvq_btn').innerHTML='开启速度测试';
+				document.getElementById('tvv_btn').innerHTML='开启速度测试';
+				document.getElementById('tvq_btn').innerHTML='开启电压测试';
 			}
             document.getElementById('BAT_VOLTAGE').innerHTML=arr[5];
 
@@ -256,7 +257,7 @@ function UpdateInfo()
             document.getElementById('swing_up_voltage').innerHTML=arr[7];
             document.getElementById('swing_up_angle').innerHTML=arr[8];
             document.getElementById('v_i_1').innerHTML=arr[9];
-            document.getElementById('v_p_2').innerHTML=arr[10];
+            document.getElementById('v_p_1').innerHTML=arr[10];
             document.getElementById('v_i_2').innerHTML=arr[11];
             document.getElementById('v_p_2').innerHTML=arr[12];
 
@@ -418,12 +419,12 @@ function checkNum(obj) {
             <td>
     <table border="0" cellspacing="0" cellpadding="0" ID="control" width="100%">
 		<tr>
-            <td height="50" width="50"><button type="button" class="ant-btn ant-btn-red" onclick="(this.innerHTML=='关闭速度测试'?(this.innerHTML='开启速度测试'):this.innerHTML='关闭速度测试');(document.getElementById('tvv_btn').innerHTML=='关闭电压测试'?(document.getElementById('tvv_btn').innerHTML='开启电压测试'):'');loadXMLDoc('/Control?Type=1&Index=77&Operation=0','OperationHit')" id="tvq_btn">开启速度测试</button></td>
+            <td height="50" width="50"><button type="button" class="ant-btn ant-btn-red" onclick="(this.innerHTML=='关闭速度测试'?(this.innerHTML='开启速度测试'):this.innerHTML='关闭速度测试');(document.getElementById('tvq_btn').innerHTML=='关闭电压测试'?(document.getElementById('tvq_btn').innerHTML='开启电压测试'):'');loadXMLDoc('/Control?Type=1&Index=88&Operation=0','OperationHit')" id="tvv_btn">开启速度测试</button></td>
 			<td width="40" align="center"><span id="speedNum">0</span></td>
             <td><input type="range" id="speed" value="0" min="-100" max="100" step="1"  onchange="changeV()"></td>
 		</tr>
 		<tr>
-            <td height="50" width="50"><button type="button" class="ant-btn ant-btn-red" onclick="(this.innerHTML=='关闭电压测试'?(this.innerHTML='开启电压测试'):this.innerHTML='关闭电压测试');(document.getElementById('tvq_btn').innerHTML=='关闭速度测试'?(document.getElementById('tvq_btn').innerHTML='开启速度测试'):'');loadXMLDoc('/Control?Type=1&Index=88&Operation=0','OperationHit')" id="tvv_btn">开启电压测试</button></td>
+            <td height="50" width="50"><button type="button" class="ant-btn ant-btn-red" onclick="(this.innerHTML=='关闭电压测试'?(this.innerHTML='开启电压测试'):this.innerHTML='关闭电压测试');(document.getElementById('tvv_btn').innerHTML=='关闭速度测试'?(document.getElementById('tvv_btn').innerHTML='开启速度测试'):'');loadXMLDoc('/Control?Type=1&Index=77&Operation=0','OperationHit')" id="tvq_btn">开启电压测试</button></td>
 			<td width="40" align="center"><span id="voltageNum">0</span></td>
             <td>
 		<input type="hidden" name="test_flag" id="test_flag">
@@ -520,10 +521,10 @@ function changeV() {
 	document.getElementById('voltageNum').innerHTML = voltageVal;
 	document.getElementById('speedNum').innerHTML = spdVal;
 	if( document.getElementById('test_flag').value=='1' ){
-		loadXMLDoc('/Control?Type=1&Index=7&Operation='+spdVal,'OperationHit');
+		loadXMLDoc('/Control?Type=1&Index=7&Operation='+voltageVal,'OperationHit');
 	}
 	if( document.getElementById('test_flag').value=='2' ){
-		loadXMLDoc('/Control?Type=1&Index=8&Operation='+voltageVal,'OperationHit');
+		loadXMLDoc('/Control?Type=1&Index=8&Operation='+spdVal,'OperationHit');
 	}
 };
 </script>
