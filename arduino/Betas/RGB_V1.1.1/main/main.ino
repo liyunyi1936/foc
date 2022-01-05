@@ -270,9 +270,6 @@ void setup() {
   Serial.printf("Lowest level of free Psram since boot = %u\r\n",ESP.getMinFreePsram());
   Serial.printf("Largest block of Psram that can be allocated at once = %u\r\n",ESP.getMinFreePsram());
 
-
-  printf("macAddress 0x%02X:0x%02X:0x%02X:0x%02X:0x%02X:0x%02X\r\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-
   if (!EEPROM.begin(1000)) {
     Serial.println("Failed to initialise EEPROM");
     Serial.println("Restarting...");
@@ -366,6 +363,10 @@ void setup() {
   Serial.println("Ready");
   Serial.print("IP address: ");
   Serial.println(WiFi.softAPIP());
+  byte mac[6];
+  WiFi.macAddress(mac);
+  WiFi.setHostname(ServerName);
+  Serial.printf("macAddress 0x%02X:0x%02X:0x%02X:0x%02X:0x%02X:0x%02X\r\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
   while (!udp.listen(localUdpPort)) //等待udp监听设置成功
   {
