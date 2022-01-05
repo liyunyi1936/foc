@@ -61,9 +61,12 @@ int touch_touched_times[4] = {};  //单击次数，单击切换模式，双击
 int touch_touching_time[4] = {}; //持续触摸秒数，用于判断长按事件，长按关闭，长按开启，开启状态长按调光，
 bool touch_STATE[4] = {1, 1, 1, 1}; // 定义按键触发对象状态变量初始值为true默认开启
 
-const char* username = "admin";     //web用户名
-const char* userpassword = "12345678"; //web用户密码
-const char* ServerName = "ESP32-LELO-RGB";
+const char *username = "admin";     //web用户名
+const char *userpassword = "12345678"; //web用户密码
+const char *ServerName = "ESP32-Reuleaux-RGB";
+char mac_tmp[6];
+const char *ssid = mac_tmp;
+const char *password = "12345678";
 char DateTimeStr[20]  = "1970-01-01 00:00:00";
 char Debug_Log[255][255];
 uint32_t loop_time_begin = millis();
@@ -95,8 +98,6 @@ uint8_t i2cData[14]; // Buffer for I2C data
 // driver instance
 double acc2rotation(double x, double y);
 float constrainAngle(float x);
-const char *ssid = "esp32";
-const char *password = "12345678";
 
 bool wifi_flag = 0;
 AsyncUDP udp;                     //创建UDP对象
@@ -242,25 +243,35 @@ void setup() {
 
   pinMode(ACTIVE_PIN, OUTPUT);
   digitalWrite(ACTIVE_PIN, HIGH);
+  
   uint32_t chipId = 0;
   for (int i = 0; i < 17; i = i + 8) {
     chipId |= ((ESP.getEfuseMac() >> (40 - i)) & 0xff) << i;
   }
+  Serial.printf("Chip ID: %d\r\n", chipId);
+  
+  Serial.printf("ESP32 Chip ID = %04X",(uint16_t)(ESP.getEfuseMac()>>32));//print High 2 bytes
+  Serial.printf("%08X\r\n",(uint32_t)ESP.getEfuseMac());//print Low 4bytes. 
 
-  Serial.printf("ESP32 Chip model = %s Rev %d\n", ESP.getChipModel(), ESP.getChipRevision());
-  Serial.printf("This chip has %d cores\n", ESP.getChipCores());
-  Serial.print("Chip ID: "); Serial.println(chipId);
+  Serial.printf("Chip model = %s Rev %d\r\n", ESP.getChipModel(), ESP.getChipRevision());
+  Serial.printf("This chip has %d cores CpuFreqMHz = %u\r\n", ESP.getChipCores(),ESP.getCpuFreqMHz());
+  Serial.printf("get Cycle Count = %u\r\n",ESP.getCycleCount());
+  Serial.printf("SDK version:%s\r\n", ESP.getSdkVersion());  //获取IDF版本
+  
+  //获取片内内存	Internal RAM
+  Serial.printf("Total heap size = %u\t",ESP.getHeapSize());
+  Serial.printf("Available heap = %u\r\n",ESP.getFreeHeap());
+  Serial.printf("Lowest level of free heap since boot = %u\r\n",ESP.getMinFreeHeap());
+  Serial.printf("Largest block of heap that can be allocated at once = %u\r\n",ESP.getMaxAllocHeap());
 
-  //获取IDF版本
-  printf("SDK version:%s\n", esp_get_idf_version());
-  //获取芯片内存
-  Serial.print("Max Free Heap: ");
-  Serial.println(ESP.getMaxAllocHeap());
-  //获取芯片可用内存
-  printf("esp_get_free_heap_size : %d  \n", esp_get_free_heap_size());
-  printf("getFreeHeap : %d  \n", ESP.getFreeHeap());
-  //获取从未使用过的最小内存
-  printf("esp_get_minimum_free_heap_size : %d  \n", esp_get_minimum_free_heap_size());
+  //SPI RAM
+  Serial.printf("Total Psram size = %u\t",ESP.getPsramSize());
+  Serial.printf("Available Psram = %u\r\n",ESP.getFreePsram());
+  Serial.printf("Lowest level of free Psram since boot = %u\r\n",ESP.getMinFreePsram());
+  Serial.printf("Largest block of Psram that can be allocated at once = %u\r\n",ESP.getMinFreePsram());
+
+
+  printf("macAddress 0x%02X:0x%02X:0x%02X:0x%02X:0x%02X:0x%02X\r\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
   if (!EEPROM.begin(1000)) {
     Serial.println("Failed to initialise EEPROM");
@@ -346,6 +357,8 @@ void setup() {
     delay(500);
   }
 
+  sprintf(mac_tmp,"%02X\r\n",(uint32_t)(ESP.getEfuseMac()>>(24) ));
+  sprintf(mac_tmp,"ESP32-%c%c%c%c%c%c",mac_tmp[4],mac_tmp[5],mac_tmp[2],mac_tmp[3],mac_tmp[0],mac_tmp[1] );
   //wifi初始化
   WiFi.mode(WIFI_AP);
   while (!WiFi.softAP(ssid, password)) {}; //启动AP
@@ -359,11 +372,7 @@ void setup() {
   }
   udp.onPacket(onPacketCallBack); //注册收到数据包事件
 
-  Serial.print("\nMax Free Heap: ");
-  Serial.println(ESP.getMaxAllocHeap());
-  Serial.println("");
-
-  ArduinoOTA.setHostname("ESP32-Reuleaux");
+  ArduinoOTA.setHostname(ServerName);
   //以下是启动OTA，可以通过WiFi刷新固件
   ArduinoOTA.onStart([]() {
     String type;
@@ -485,9 +494,11 @@ void setup() {
 
   StartWebServer();
 
-  Serial.println("System is ready");
+  Serial.print("System is ready \t Free Heap: ");
+  Serial.println(ESP.getFreeHeap());
   Serial.println("-----------------------------------------------");
-
+  Serial.println("");
+  
   Debug_Log_func("setup", 1);
 }
 
