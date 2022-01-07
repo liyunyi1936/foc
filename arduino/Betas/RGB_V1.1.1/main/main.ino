@@ -43,7 +43,7 @@ void OnSecond();
 void StartWebServer();
 
 #define ACTIVE_PIN 4  //状态灯
-#define BAT_VOLTAGE_SENSE_PIN 34  //电池电压检测ADC，如果旧版PCB无电压检测电路，则注释掉此行
+//#define BAT_VOLTAGE_SENSE_PIN 34  //电池电压检测ADC，如果旧版PCB无电压检测电路，则注释掉此行
 const double R1_VOLTAGE = 68000; //68K
 const double R2_VOLTAGE = 10000; //10K
 const double min_voltage  = 9.5;  //电池检测最低电压
