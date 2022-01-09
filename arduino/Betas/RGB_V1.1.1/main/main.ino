@@ -43,7 +43,7 @@ void OnSecond();
 void StartWebServer();
 
 #define ACTIVE_PIN 4  //状态灯
-//#define BAT_VOLTAGE_SENSE_PIN 34  //电池电压检测ADC，如果旧版PCB无电压检测电路，则注释掉此行
+#define BAT_VOLTAGE_SENSE_PIN 34  //电池电压检测ADC，如果旧版PCB无电压检测电路，则注释掉此行
 const double R1_VOLTAGE = 68000; //68K
 const double R2_VOLTAGE = 10000; //10K
 const double min_voltage  = 9.5;  //电池检测最低电压
@@ -243,32 +243,32 @@ void setup() {
 
   pinMode(ACTIVE_PIN, OUTPUT);
   digitalWrite(ACTIVE_PIN, HIGH);
-  
+
   uint32_t chipId = 0;
   for (int i = 0; i < 17; i = i + 8) {
     chipId |= ((ESP.getEfuseMac() >> (40 - i)) & 0xff) << i;
   }
   Serial.printf("Chip ID: %d\r\n", chipId);
-  
-  Serial.printf("ESP32 Chip ID = %04X",(uint16_t)(ESP.getEfuseMac()>>32));//print High 2 bytes
-  Serial.printf("%08X\r\n",(uint32_t)ESP.getEfuseMac());//print Low 4bytes. 
+
+  Serial.printf("ESP32 Chip ID = %04X", (uint16_t)(ESP.getEfuseMac() >> 32)); //print High 2 bytes
+  Serial.printf("%08X\r\n", (uint32_t)ESP.getEfuseMac()); //print Low 4bytes.
 
   Serial.printf("Chip model = %s Rev %d\r\n", ESP.getChipModel(), ESP.getChipRevision());
-  Serial.printf("This chip has %d cores CpuFreqMHz = %u\r\n", ESP.getChipCores(),ESP.getCpuFreqMHz());
-  Serial.printf("get Cycle Count = %u\r\n",ESP.getCycleCount());
+  Serial.printf("This chip has %d cores CpuFreqMHz = %u\r\n", ESP.getChipCores(), ESP.getCpuFreqMHz());
+  Serial.printf("get Cycle Count = %u\r\n", ESP.getCycleCount());
   Serial.printf("SDK version:%s\r\n", ESP.getSdkVersion());  //获取IDF版本
-  
+
   //获取片内内存	Internal RAM
-  Serial.printf("Total heap size = %u\t",ESP.getHeapSize());
-  Serial.printf("Available heap = %u\r\n",ESP.getFreeHeap());
-  Serial.printf("Lowest level of free heap since boot = %u\r\n",ESP.getMinFreeHeap());
-  Serial.printf("Largest block of heap that can be allocated at once = %u\r\n",ESP.getMaxAllocHeap());
+  Serial.printf("Total heap size = %u\t", ESP.getHeapSize());
+  Serial.printf("Available heap = %u\r\n", ESP.getFreeHeap());
+  Serial.printf("Lowest level of free heap since boot = %u\r\n", ESP.getMinFreeHeap());
+  Serial.printf("Largest block of heap that can be allocated at once = %u\r\n", ESP.getMaxAllocHeap());
 
   //SPI RAM
-  Serial.printf("Total Psram size = %u\t",ESP.getPsramSize());
-  Serial.printf("Available Psram = %u\r\n",ESP.getFreePsram());
-  Serial.printf("Lowest level of free Psram since boot = %u\r\n",ESP.getMinFreePsram());
-  Serial.printf("Largest block of Psram that can be allocated at once = %u\r\n",ESP.getMinFreePsram());
+  Serial.printf("Total Psram size = %u\t", ESP.getPsramSize());
+  Serial.printf("Available Psram = %u\r\n", ESP.getFreePsram());
+  Serial.printf("Lowest level of free Psram since boot = %u\r\n", ESP.getMinFreePsram());
+  Serial.printf("Largest block of Psram that can be allocated at once = %u\r\n", ESP.getMinFreePsram());
 
   if (!EEPROM.begin(1000)) {
     Serial.println("Failed to initialise EEPROM");
@@ -354,8 +354,8 @@ void setup() {
     delay(500);
   }
 
-  sprintf(mac_tmp,"%02X\r\n",(uint32_t)(ESP.getEfuseMac()>>(24) ));
-  sprintf(mac_tmp,"ESP32-%c%c%c%c%c%c",mac_tmp[4],mac_tmp[5],mac_tmp[2],mac_tmp[3],mac_tmp[0],mac_tmp[1] );
+  sprintf(mac_tmp, "%02X\r\n", (uint32_t)(ESP.getEfuseMac() >> (24) ));
+  sprintf(mac_tmp, "ESP32-%c%c%c%c%c%c", mac_tmp[4], mac_tmp[5], mac_tmp[2], mac_tmp[3], mac_tmp[0], mac_tmp[1] );
   //wifi初始化
   WiFi.mode(WIFI_AP);
   while (!WiFi.softAP(ssid, password)) {}; //启动AP
@@ -499,7 +499,7 @@ void setup() {
   Serial.println(ESP.getFreeHeap());
   Serial.println("-----------------------------------------------");
   Serial.println("");
-  
+
   Debug_Log_func("setup", 1);
 }
 
@@ -827,33 +827,23 @@ void OnSecond()
   }
 #endif
 
-  if (touchDetected[1] > 0) { //检测到触摸中，一秒计数一次，未触摸则清零
-    touch_touching_time[1]++;
+  for (byte i = 0; i < 3; i++) {
+    if (touchDetected[i] > 0) { //检测到触摸中，一秒计数一次，未触摸则清零
+      touch_touching_time[i]++;
+      //长按事件处理
+      if (touch_touching_time[1] % 2 == 0) { //按住大于2秒关灯或者开灯
+        switch (i) {
+          case 0:
 
-    //Serial.print("\nLight1 touching ");
-    //Serial.println(touch_touching_time[1]);
-    //长按事件处理
-    if (touch_touching_time[1] % 2 == 0) { //按住大于2秒关灯或者开灯
-      touch_STATE[1] = !touch_STATE[1]; //灯光状态反处理
-    }
+            break;
+          case 1:
+            touch_STATE[i] = !touch_STATE[i]; //灯光状态反处理
+            break;
+          case 2:
 
-  }
-  if (touchDetected[2] > 0) { //检测到触摸中，一秒计数一次，未触摸则清零
-    touch_touching_time[2]++;
-    //Serial.print("\nLight2 touching ");
-    //Serial.println(touch_touching_time[2]);
-
-    if (touch_touching_time[2] % 2 == 0) { //按住大于2秒事件处理
-
-    }
-  }
-  if (touchDetected[3] > 0) { //检测到触摸中，一秒计数一次，未触摸则清零
-    touch_touching_time[3]++;
-    //Serial.print("\nLight2 touching ");
-    //Serial.println(touch_touching_time[2]);
-
-    if (touch_touching_time[3] % 2 == 0) { //按住大于2秒事件处理
-
+            break;
+        }
+      }
     }
   }
 }
@@ -1042,54 +1032,55 @@ void PocessControl(int DeviceType, int DeviceIndex, int Operation, float Operati
     {
       sprintf(do_commd, "%.2f", Operation2);
       //Serial.println(do_commd);
-      if (DeviceIndex == 0)  //期望角度TA
-      {
-        do_TA(do_commd);
-      } else if (DeviceIndex == 1)  //摇摆电压SV
-      {
-        do_SV(do_commd);
-      } else if (DeviceIndex == 2)  //摇摆角度SA
-      {
-        do_SA(do_commd);
-      } else if (DeviceIndex == 3)  //速度环P1
-      {
-        do_vp1(do_commd);
-      } else if (DeviceIndex == 4)  //速度环I1
-      {
-        do_vi1(do_commd);
-      } else if (DeviceIndex == 5)  //速度环P2
-      {
-        do_vp2(do_commd);
-      } else if (DeviceIndex == 6)  //速度环I2
-      {
-        do_vi2(do_commd);
-      } else if (DeviceIndex == 7)  //do_VQ
-      {
-        do_VQ(do_commd);
-      } else if (DeviceIndex == 8)  //do_VV
-      {
-        do_VV(do_commd);
-      } else if (DeviceIndex == 77)  //TVQ
-      {
-        do_TVQ(do_commd);
-        if (test_flag == 1)
-          ReturnString += "打开电机电压测试";
-        else
-          ReturnString += "关闭电机电压测试";
-      } else if (DeviceIndex == 88)  //TVV
-      {
-        do_TVV(do_commd);
-        if (test_flag == 2)
-          ReturnString += "打开电机速度测试";
-        else
-          ReturnString += "关闭电机速度测试";
-      } else if (DeviceIndex == 99)  //电机启停
-      {
-        do_MOTOR(do_commd);
-        if (!Motor_enable_flag)
-          ReturnString += "电机启动...";
-        else
-          ReturnString += "电机停机...";
+      switch (DeviceIndex) {
+        case 0:  //期望角度TA
+          do_TA(do_commd);
+          break;
+        case 1:  //摇摆电压SV
+          do_SV(do_commd);
+          break;
+        case 2:  //摇摆角度SA
+          do_SA(do_commd);
+          break;
+        case 3:  //速度环P1
+          do_vp1(do_commd);
+          break;
+        case 4:  //速度环I1
+          do_vi1(do_commd);
+          break;
+        case 5:  //速度环P2
+          do_vp2(do_commd);
+          break;
+        case 6:  //速度环I2
+          do_vi2(do_commd);
+          break;
+        case 7:  //do_VQ
+          do_VQ(do_commd);
+          break;
+        case 8:  //do_VV
+          do_VV(do_commd);
+          break;
+        case 77:  //TVQ
+          do_TVQ(do_commd);
+          if (test_flag == 1)
+            ReturnString += "打开电机电压测试";
+          else
+            ReturnString += "关闭电机电压测试";
+          break;
+        case 88:  //TVV
+          do_TVV(do_commd);
+          if (test_flag == 2)
+            ReturnString += "打开电机速度测试";
+          else
+            ReturnString += "关闭电机速度测试";
+          break;
+        case 99: //电机启停
+          do_MOTOR(do_commd);
+          if (!Motor_enable_flag)
+            ReturnString += "电机启动...";
+          else
+            ReturnString += "电机停机...";
+          break;
       }
       EEPROM.commit();
     }
