@@ -43,7 +43,7 @@ void OnSecond();
 void StartWebServer();
 
 #define ACTIVE_PIN 4  //状态灯
-//#define BAT_VOLTAGE_SENSE_PIN 34  //电池电压检测ADC，如果旧版PCB无电压检测电路，则注释掉此行
+#define BAT_VOLTAGE_SENSE_PIN 34  //电池电压检测ADC，如果旧版PCB无电压检测电路，则注释掉此行
 const double R1_VOLTAGE = 68000; //68K
 const double R2_VOLTAGE = 10000; //10K
 const double min_voltage  = 9.5;  //电池检测最低电压
@@ -62,11 +62,11 @@ int touch_touching_time[4] = {}; //持续触摸秒数，用于判断长按事件
 bool touch_STATE[4] = {1, 1, 1, 1}; // 定义按键触发对象状态变量初始值为true默认开启
 
 const char *username = "admin";     //web用户名
-const char *userpassword = "12345678"; //web用户密码
+const char *userpassword = "reuleaux123"; //web用户密码
 const char *ServerName = "ESP32-Reuleaux-RGB";
 char mac_tmp[6];
 const char *ssid = mac_tmp;
-const char *password = "12345678";
+const char *password = "Reul12345678";
 char DateTimeStr[20]  = "1970-01-01 00:00:00";
 char Debug_Log[255][255];
 uint32_t loop_time_begin = millis();
@@ -1235,17 +1235,18 @@ double return_voltage_value(int pin_no)
   double tmp = 0;
   double ADCVoltage = 0;
   double inputVoltage = 0;
-  double avg = 0;
 
-  for (int i = 0; i < 150; i++)
+  for (int i = 0; i < 20; i++)
   {
-    tmp = tmp + analogRead(pin_no);
-  }
-  avg = tmp / 150;
+    ADCVoltage = analogReadMilliVolts(pin_no) / 1000;
+    inputVoltage = (ADCVoltage * R1_VOLTAGE) / R2_VOLTAGE;
 
-  //avg = analogRead(pin_no);
-  ADCVoltage = ((avg * 3.3) / (4095)) + 0.101;
-  inputVoltage = ADCVoltage / (R2_VOLTAGE / (R1_VOLTAGE + R2_VOLTAGE)); // formula for calculating voltage in i.e. GND
+    tmp = tmp + inputVoltage + ADCVoltage; // formula for calculating voltage in i.e. GND
+  }
+  inputVoltage = tmp / 20;
+  if(inputVoltage!=0)
+    inputVoltage = inputVoltage + 0.165;
+
   return inputVoltage;
 }
 
