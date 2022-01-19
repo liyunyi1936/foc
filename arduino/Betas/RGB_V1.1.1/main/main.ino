@@ -1232,20 +1232,20 @@ void addGlitter( fract8 chanceOfGlitter)
 
 double return_voltage_value(int pin_no)
 {
-  double tmp = 0;
-  double ADCVoltage = 0;
-  double inputVoltage = 0;
+  double tmp;
+  double ADCVoltage;
+  double inputVoltage;
 
   for (int i = 0; i < 20; i++)
   {
-    ADCVoltage = analogReadMilliVolts(pin_no) / 1000;
+    ADCVoltage = analogReadMilliVolts(pin_no) / 1000.0;
     inputVoltage = (ADCVoltage * R1_VOLTAGE) / R2_VOLTAGE;
 
     tmp = tmp + inputVoltage + ADCVoltage; // formula for calculating voltage in i.e. GND
   }
   inputVoltage = tmp / 20;
   if(inputVoltage!=0)
-    inputVoltage = inputVoltage + 0.165;
+    inputVoltage = inputVoltage + 0.001;
 
   return inputVoltage;
 }
