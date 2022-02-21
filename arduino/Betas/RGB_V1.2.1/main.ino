@@ -11,7 +11,8 @@
   比如让平衡角度为90度，则输入：TA90，并且会存入eeprom的位置0中 注：wifi发送命令不能过快，因为每次都会保存进eeprom
   在使用自己的电机时，请一定记得修改默认极对数，即 BLDCMotor(5) 中的值，设置为自己的极对数数字，磁铁数量/2
   程序默认设置的供电电压为 12V,用其他电压供电请记得修改 voltage_power_supply , voltage_limit 变量中的值
-  默认PID针对的电机是 GB2204 ，使用自己的电机需要修改PID参数，才能实现更好效果
+  V1默认PID针对的电机是 GB2204 ，使用自己的电机需要修改PID参数，才能实现更好效果
+  V2电机是2715
 */
 #include <SimpleFOC.h>
 #include "Command.h"
@@ -59,7 +60,7 @@ int touchDetected[4] = {}; //通过touchdetected持续计数判断是否按键�
 bool touch_touched[4] = {};   //单击判断
 int touch_touched_times[4] = {};  //单击次数，单击切换模式，双击
 int touch_touching_time[4] = {}; //持续触摸秒数，用于判断长按事件，长按关闭，长按开启，开启状态长按调光，
-bool touch_STATE[4] = {1, 1, 1, 1}; // 定义按键触发对象状态变量初始值为true默认开启 T2 T3 T4
+bool touch_STATE[4] = {1, 1, 1, 0}; // 定义按键触发对象状态变量初始值为true默认开启 T2 T3 T4
 
 const char *username = "admin";     //web用户名
 const char *userpassword = "reuleaux123"; //web用户密码
@@ -229,18 +230,57 @@ void Debug_Log_func(String debuglog, bool debug_control = debug_log_control) {
 
 bool AutoWifiConfig()
 {
-      //wifi初始化
-      WiFi.mode(WIFI_AP);
-      while (!WiFi.softAP(ssid, password)) {}; //启动AP
-      Serial.println("AP启动成功");
-      Serial.println("Ready");
-      Serial.print("IP address: ");
-      Serial.println(WiFi.softAPIP());
-      byte mac[6];
-      WiFi.macAddress(mac);
-      WiFi.setHostname(ServerName);
-      Serial.printf("macAddress 0x%02X:0x%02X:0x%02X:0x%02X:0x%02X:0x%02X\r\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+  //wifi初始化
+  WiFi.mode(WIFI_AP);
+  while (!WiFi.softAP(ssid, password)) {}; //启动AP
+  Serial.println("AP启动成功");
+  Serial.println("Ready");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.softAPIP());
+  byte mac[6];
+  WiFi.macAddress(mac);
+  WiFi.setHostname(ServerName);
+  Serial.printf("macAddress 0x%02X:0x%02X:0x%02X:0x%02X:0x%02X:0x%02X\r\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+  
+  while (!udp.listen(localUdpPort)) //等待udp监听设置成功
+  {
+  }
+  udp.onPacket(onPacketCallBack); //注册收到数据包事件
 
+  ArduinoOTA.setHostname(ServerName);
+  //以下是启动OTA，可以通过WiFi刷新固件
+  ArduinoOTA.onStart([]() {
+    String type;
+    if (ArduinoOTA.getCommand() == U_FLASH) {
+      type = "sketch";
+    } else { // U_SPIFFS
+      type = "filesystem";
+    }
+
+    // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+    Serial.println("Start updating " + type);
+  });
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\nEnd");
+  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) {
+      Serial.println("Auth Failed");
+    } else if (error == OTA_BEGIN_ERROR) {
+      Serial.println("Begin Failed");
+    } else if (error == OTA_CONNECT_ERROR) {
+      Serial.println("Connect Failed");
+    } else if (error == OTA_RECEIVE_ERROR) {
+      Serial.println("Receive Failed");
+    } else if (error == OTA_END_ERROR) {
+      Serial.println("End Failed");
+    }
+  });
+  ArduinoOTA.begin();
 }
 
 void onPacketCallBack(AsyncUDPPacket packet)
@@ -372,47 +412,12 @@ void setup() {
 
   sprintf(mac_tmp, "%02X\r\n", (uint32_t)(ESP.getEfuseMac() >> (24) ));
   sprintf(mac_tmp, "ESP32-%c%c%c%c%c%c", mac_tmp[4], mac_tmp[5], mac_tmp[2], mac_tmp[3], mac_tmp[0], mac_tmp[1] );
-  
-  AutoWifiConfig();
-  while (!udp.listen(localUdpPort)) //等待udp监听设置成功
-  {
+
+  if ( touch_STATE[3] ) {
+    AutoWifiConfig();
+    StartWebServer();
   }
-  udp.onPacket(onPacketCallBack); //注册收到数据包事件
 
-  ArduinoOTA.setHostname(ServerName);
-  //以下是启动OTA，可以通过WiFi刷新固件
-  ArduinoOTA.onStart([]() {
-    String type;
-    if (ArduinoOTA.getCommand() == U_FLASH) {
-      type = "sketch";
-    } else { // U_SPIFFS
-      type = "filesystem";
-    }
-
-    // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
-    Serial.println("Start updating " + type);
-  });
-  ArduinoOTA.onEnd([]() {
-    Serial.println("\nEnd");
-  });
-  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-  });
-  ArduinoOTA.onError([](ota_error_t error) {
-    Serial.printf("Error[%u]: ", error);
-    if (error == OTA_AUTH_ERROR) {
-      Serial.println("Auth Failed");
-    } else if (error == OTA_BEGIN_ERROR) {
-      Serial.println("Begin Failed");
-    } else if (error == OTA_CONNECT_ERROR) {
-      Serial.println("Connect Failed");
-    } else if (error == OTA_RECEIVE_ERROR) {
-      Serial.println("Receive Failed");
-    } else if (error == OTA_END_ERROR) {
-      Serial.println("End Failed");
-    }
-  });
-  ArduinoOTA.begin();
 
   // kalman mpu6050 init
   Wire.begin(19, 18, 400000); // Set I2C frequency to 400kHz
@@ -499,7 +504,6 @@ void setup() {
     Serial.println("SPIFFS Failed to Start.");
   }
 
-  StartWebServer();
 
   Serial.print("System is ready \t Free Heap: ");
   Serial.println(ESP.getFreeHeap());
