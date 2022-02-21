@@ -123,14 +123,14 @@ float LQR_K4_3 = 1.42; //
 BLDCMotor motor = BLDCMotor(7); //电机极数
 BLDCDriver3PWM driver = BLDCDriver3PWM(32, 33, 25, 22);
 float target_velocity = 0;	//目标速度
-float target_angle = 90;	//平衡角度 例如TA89.3 设置平衡角度89.3
+float target_angle = 89.3;	//平衡角度 例如TA89.3 设置平衡角度89.3
 float target_voltage = 0;	//目标电压
 float swing_up_voltage = 1.8;	//摇摆电压 左右摇摆的电压，越大越快到平衡态，但是过大会翻过头
 float swing_up_angle = 20;	//摇摆角度 离平衡角度还有几度时候，切换到自平衡控制
 float v_i_1 = 20;	//非稳态速度环I
-float v_p_1 = 0.7;	//非稳态速度环P
+float v_p_1 = 0.5;	//非稳态速度环P
 float v_i_2 = 10;	//稳态速度环I
-float v_p_2 = 0.3;	//稳态速度环P
+float v_p_2 = 0.2;	//稳态速度环P
 //命令设置
 Command comm;
 bool Motor_enable_flag = 0;
@@ -407,7 +407,7 @@ void setup() {
       FastLED.show();
       delay(15);
     }
-    delay(500);
+    delay(300);
   }
 
   sprintf(mac_tmp, "%02X\r\n", (uint32_t)(ESP.getEfuseMac() >> (24) ));
@@ -474,7 +474,7 @@ void setup() {
   motor.voltage_limit = 12;   // [V]s
 
   //速度低通滤波时间常数
-  motor.LPF_velocity.Tf = 0.01f;
+  motor.LPF_velocity.Tf = 0.02;
 
   // angle P controller
   motor.P_angle.P = 20;
@@ -561,8 +561,8 @@ void loop() {
     if (abs(pendulum_angle) < swing_up_angle) // if angle small enough stabilize 0.5~30°,1.5~90°
     {
       target_velocity = controllerLQR(pendulum_angle, gyroZrate, motor.shaftVelocity());
-      if (abs(target_velocity) > 140)
-        target_velocity = _sign(target_velocity) * 140;
+      if (abs(target_velocity) > motor.velocity_limit)
+        target_velocity = _sign(target_velocity) * motor.velocity_limit;
 
       motor.controller = MotionControlType::velocity;
       motor.move(target_velocity);
@@ -717,18 +717,20 @@ float controllerLQR(float p_angle, float p_vel, float m_vel)
   //  - k = [13.3, 21, 0.3]
   //  - x = [pendulum angle, pendulum velocity, motor velocity]'
 
-  if (abs(p_angle) > 3)	//摆角大于2.5则进入非稳态，记录非稳态时间
+  if (abs(p_angle) > 2.5)	//摆角大于2.5则进入非稳态，记录非稳态时间
   {
     last_unstable_time = millis();
     if (stable)	//如果是稳态进入非稳态则调整为目标角度
     {
-      target_angle = EEPROM.readFloat(0) - p_angle;
+      //target_angle = EEPROM.readFloat(0) - p_angle;
+      target_angle = EEPROM.readFloat(0);
       stable = 0;
     }
   }
-  if ((millis() - last_unstable_time) > 500 && !stable)	//非稳态进入稳态超过500ms检测，更新目标角为目标角+摆角，假设进入稳态
+  if ((millis() - last_unstable_time) > 1000 && !stable)	//非稳态进入稳态超过500ms检测，更新目标角为目标角+摆角，假设进入稳态
   {
-    target_angle  -= _sign(target_velocity) * 0.4;
+    //target_angle  -= _sign(target_velocity) * 0.4;
+    target_angle = target_angle+p_angle;
     stable = 1;
   }
 
