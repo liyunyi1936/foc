@@ -701,13 +701,15 @@ float controllerLQR(float p_angle, float p_vel, float m_vel)
     last_unstable_time = millis();
     if (stable)	//如果是稳态进入非稳态则调整为目标角度
     {
-      target_angle = EEPROM.readFloat(0) - p_angle;
+      //target_angle = EEPROM.readFloat(0) - p_angle;
+      target_angle = EEPROM.readFloat(0);
       stable = 0;
     }
   }
   if ((millis() - last_unstable_time) > 500 && !stable)	//非稳态进入稳态超过500ms检测，更新目标角为目标角+摆角，假设进入稳态
   {
-    target_angle  -= _sign(target_velocity) * 0.4;
+    //target_angle  -= _sign(target_velocity) * 0.4;
+    target_angle = target_angle+p_angle;
     stable = 1;
   }
 
