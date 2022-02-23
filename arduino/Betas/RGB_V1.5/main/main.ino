@@ -1,5 +1,5 @@
 /**
-   自平衡莱洛三角形 RGB版  HW:Ver 1.5  FW:Ver 1.1.1
+   自平衡莱洛三角形 RGB版  HW:Ver 1.5  FW:Ver 1.2.1
    立创EDA https://oshwhub.com/muyan2020/zi-ping-heng-di-lai-luo-san-jiao_10-10-ban-ben_copy
    RGB版本程序 https://gitee.com/muyan3000/RGBFOC 基于45°(https://gitee.com/coll45/foc/)程序修改
    arduino开发环境-灯哥开源FOChttps://gitee.com/ream_d/Deng-s-foc-controller，并安装Kalman。
@@ -11,7 +11,8 @@
   比如让平衡角度为90度，则输入：TA90，并且会存入eeprom的位置0中 注：wifi发送命令不能过快，因为每次都会保存进eeprom
   在使用自己的电机时，请一定记得修改默认极对数，即 BLDCMotor(5) 中的值，设置为自己的极对数数字，磁铁数量/2
   程序默认设置的供电电压为 12V,用其他电压供电请记得修改 voltage_power_supply , voltage_limit 变量中的值
-  默认PID针对的电机是 GB2204 ，使用自己的电机需要修改PID参数，才能实现更好效果
+  V1默认PID针对的电机是 GB2204 ，使用自己的电机需要修改PID参数，才能实现更好效果
+  V2电机是2715
 */
 #include <SimpleFOC.h>
 #include "Command.h"
@@ -59,7 +60,7 @@ int touchDetected[4] = {}; //通过touchdetected持续计数判断是否按键�
 bool touch_touched[4] = {};   //单击判断
 int touch_touched_times[4] = {};  //单击次数，单击切换模式，双击
 int touch_touching_time[4] = {}; //持续触摸秒数，用于判断长按事件，长按关闭，长按开启，开启状态长按调光，
-bool touch_STATE[4] = {1, 1, 1, 1}; // 定义按键触发对象状态变量初始值为true默认开启
+bool touch_STATE[4] = {1, 1, 1, 1}; // 定义按键触发对象状态变量初始值为true默认开启 T2 T3 T4
 
 const char *username = "admin";     //web用户名
 const char *userpassword = "reuleaux123"; //web用户密码
@@ -119,17 +120,17 @@ float LQR_K4_2 = 1.5;   //
 float LQR_K4_3 = 1.42; //
 
 //电机参数
-BLDCMotor motor = BLDCMotor(5);
+BLDCMotor motor = BLDCMotor(5); //电机极数
 BLDCDriver3PWM driver = BLDCDriver3PWM(32, 33, 25, 22);
 float target_velocity = 0;	//目标速度
-float target_angle = 90;	//平衡角度 例如TA89.3 设置平衡角度89.3
+float target_angle = 89.3;	//平衡角度 例如TA89.3 设置平衡角度89.3
 float target_voltage = 0;	//目标电压
 float swing_up_voltage = 1.8;	//摇摆电压 左右摇摆的电压，越大越快到平衡态，但是过大会翻过头
 float swing_up_angle = 20;	//摇摆角度 离平衡角度还有几度时候，切换到自平衡控制
 float v_i_1 = 20;	//非稳态速度环I
-float v_p_1 = 0.7;	//非稳态速度环P
+float v_p_1 = 0.5;	//非稳态速度环P
 float v_i_2 = 10;	//稳态速度环I
-float v_p_2 = 0.3;	//稳态速度环P
+float v_p_2 = 0.2;	//稳态速度环P
 //命令设置
 Command comm;
 bool Motor_enable_flag = 0;
@@ -227,6 +228,61 @@ void Debug_Log_func(String debuglog, bool debug_control = debug_log_control) {
   }
 }
 
+bool AutoWifiConfig()
+{
+  //wifi初始化
+  WiFi.mode(WIFI_AP);
+  while (!WiFi.softAP(ssid, password)) {}; //启动AP
+  Serial.println("AP启动成功");
+  Serial.println("Ready");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.softAPIP());
+  byte mac[6];
+  WiFi.macAddress(mac);
+  WiFi.setHostname(ServerName);
+  Serial.printf("macAddress 0x%02X:0x%02X:0x%02X:0x%02X:0x%02X:0x%02X\r\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+  
+  while (!udp.listen(localUdpPort)) //等待udp监听设置成功
+  {
+  }
+  udp.onPacket(onPacketCallBack); //注册收到数据包事件
+
+  ArduinoOTA.setHostname(ServerName);
+  //以下是启动OTA，可以通过WiFi刷新固件
+  ArduinoOTA.onStart([]() {
+    String type;
+    if (ArduinoOTA.getCommand() == U_FLASH) {
+      type = "sketch";
+    } else { // U_SPIFFS
+      type = "filesystem";
+    }
+
+    // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+    Serial.println("Start updating " + type);
+  });
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\nEnd");
+  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) {
+      Serial.println("Auth Failed");
+    } else if (error == OTA_BEGIN_ERROR) {
+      Serial.println("Begin Failed");
+    } else if (error == OTA_CONNECT_ERROR) {
+      Serial.println("Connect Failed");
+    } else if (error == OTA_RECEIVE_ERROR) {
+      Serial.println("Receive Failed");
+    } else if (error == OTA_END_ERROR) {
+      Serial.println("End Failed");
+    }
+  });
+  ArduinoOTA.begin();
+}
+
 void onPacketCallBack(AsyncUDPPacket packet)
 {
   char* da;
@@ -274,7 +330,7 @@ void setup() {
     Serial.println("Failed to initialise EEPROM");
     Serial.println("Restarting...");
     delay(1000);
-    ESP.restart();
+    esp_restart();
   }
   // eeprom 读取
   int k, j;
@@ -351,62 +407,17 @@ void setup() {
       FastLED.show();
       delay(15);
     }
-    delay(500);
+    delay(300);
   }
 
   sprintf(mac_tmp, "%02X\r\n", (uint32_t)(ESP.getEfuseMac() >> (24) ));
   sprintf(mac_tmp, "ESP32-%c%c%c%c%c%c", mac_tmp[4], mac_tmp[5], mac_tmp[2], mac_tmp[3], mac_tmp[0], mac_tmp[1] );
-  //wifi初始化
-  WiFi.mode(WIFI_AP);
-  while (!WiFi.softAP(ssid, password)) {}; //启动AP
-  Serial.println("AP启动成功");
-  Serial.println("Ready");
-  Serial.print("IP address: ");
-  Serial.println(WiFi.softAPIP());
-  byte mac[6];
-  WiFi.macAddress(mac);
-  WiFi.setHostname(ServerName);
-  Serial.printf("macAddress 0x%02X:0x%02X:0x%02X:0x%02X:0x%02X:0x%02X\r\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
-  while (!udp.listen(localUdpPort)) //等待udp监听设置成功
-  {
+  if ( touch_STATE[3] ) {
+    AutoWifiConfig();
+    StartWebServer();
   }
-  udp.onPacket(onPacketCallBack); //注册收到数据包事件
 
-  ArduinoOTA.setHostname(ServerName);
-  //以下是启动OTA，可以通过WiFi刷新固件
-  ArduinoOTA.onStart([]() {
-    String type;
-    if (ArduinoOTA.getCommand() == U_FLASH) {
-      type = "sketch";
-    } else { // U_SPIFFS
-      type = "filesystem";
-    }
-
-    // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
-    Serial.println("Start updating " + type);
-  });
-  ArduinoOTA.onEnd([]() {
-    Serial.println("\nEnd");
-  });
-  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-  });
-  ArduinoOTA.onError([](ota_error_t error) {
-    Serial.printf("Error[%u]: ", error);
-    if (error == OTA_AUTH_ERROR) {
-      Serial.println("Auth Failed");
-    } else if (error == OTA_BEGIN_ERROR) {
-      Serial.println("Begin Failed");
-    } else if (error == OTA_CONNECT_ERROR) {
-      Serial.println("Connect Failed");
-    } else if (error == OTA_RECEIVE_ERROR) {
-      Serial.println("Receive Failed");
-    } else if (error == OTA_END_ERROR) {
-      Serial.println("End Failed");
-    }
-  });
-  ArduinoOTA.begin();
 
   // kalman mpu6050 init
   Wire.begin(19, 18, 400000); // Set I2C frequency to 400kHz
@@ -460,16 +471,16 @@ void setup() {
   motor.PID_velocity.I = v_i_1;
 
   //最大电机限制电压
-  motor.voltage_limit = 6;
+  motor.voltage_limit = 12;   // [V]s
 
   //速度低通滤波时间常数
-  motor.LPF_velocity.Tf = 0.01f;
+  motor.LPF_velocity.Tf = 0.02;
 
   // angle P controller
   motor.P_angle.P = 20;
 
   //设置最大速度限制
-  motor.velocity_limit = 40;
+  motor.velocity_limit = 180; // [rad/s]
 
   motor.useMonitoring(Serial);
 
@@ -493,7 +504,6 @@ void setup() {
     Serial.println("SPIFFS Failed to Start.");
   }
 
-  StartWebServer();
 
   Serial.print("System is ready \t Free Heap: ");
   Serial.println(ESP.getFreeHeap());
@@ -508,7 +518,11 @@ long loop_count = 0;
 double last_pitch;
 void loop() {
   Debug_Log_func("loop");
-  ArduinoOTA.handle();
+  if ( touch_STATE[3] ) {
+    ESP32Server.handleClient();
+    //delay(1);//allow the cpu to switch to other tasks
+    ArduinoOTA.handle();
+  }
   motor.loopFOC();
 
   while (i2cRead(0x3B, i2cData, 14));
@@ -547,8 +561,8 @@ void loop() {
     if (abs(pendulum_angle) < swing_up_angle) // if angle small enough stabilize 0.5~30°,1.5~90°
     {
       target_velocity = controllerLQR(pendulum_angle, gyroZrate, motor.shaftVelocity());
-      if (abs(target_velocity) > 140)
-        target_velocity = _sign(target_velocity) * 140;
+      if (abs(target_velocity) > motor.velocity_limit)
+        target_velocity = _sign(target_velocity) * motor.velocity_limit;
 
       motor.controller = MotionControlType::velocity;
       motor.move(target_velocity);
@@ -629,6 +643,13 @@ void loop() {
     touch_touched[2] = false;
   }
 
+  if (touch_touched[3]) {
+    //Serial.print("\nLight2 touched ");
+    //Serial.println(touch_touched_times[2]);
+
+    touch_touched[3] = false;
+  }
+
   //灯光及按键处理
   if ( touch_STATE[1] ) {
     pride();
@@ -638,7 +659,7 @@ void loop() {
     FastLED.clearData();
     FastLED.show();
   }
-
+  
   TenthSecondsSinceStartTask();
 }
 
@@ -696,7 +717,7 @@ float controllerLQR(float p_angle, float p_vel, float m_vel)
   //  - k = [13.3, 21, 0.3]
   //  - x = [pendulum angle, pendulum velocity, motor velocity]'
 
-  if (abs(p_angle) > 3)	//摆角大于2.5则进入非稳态，记录非稳态时间
+  if (abs(p_angle) > 2.5)	//摆角大于2.5则进入非稳态，记录非稳态时间
   {
     last_unstable_time = millis();
     if (stable)	//如果是稳态进入非稳态则调整为目标角度
@@ -706,7 +727,7 @@ float controllerLQR(float p_angle, float p_vel, float m_vel)
       stable = 0;
     }
   }
-  if ((millis() - last_unstable_time) > 500 && !stable)	//非稳态进入稳态超过500ms检测，更新目标角为目标角+摆角，假设进入稳态
+  if ((millis() - last_unstable_time) > 1000 && !stable)	//非稳态进入稳态超过500ms检测，更新目标角为目标角+摆角，假设进入稳态
   {
     //target_angle  -= _sign(target_velocity) * 0.4;
     target_angle = target_angle+p_angle;
@@ -754,8 +775,6 @@ unsigned long LastMillis = 0;
 void TenthSecondsSinceStartTask() //100ms
 {
   unsigned long CurrentMillis = millis();
-  ESP32Server.handleClient();
-  delay(1);//allow the cpu to switch to other tasks
   if (abs(int(CurrentMillis - LastMillis)) > 100)
   {
     LastMillis = CurrentMillis;
@@ -793,8 +812,8 @@ void OnSecond()
   //Serial.println(DateTimeStr);
 
 #if defined(BAT_VOLTAGE_SENSE_PIN)  //电池电压检测
-  //driver.voltage_power_supply = return_voltage_value(BAT_VOLTAGE_SENSE_PIN);
   bat_voltage = return_voltage_value(BAT_VOLTAGE_SENSE_PIN);
+  //driver.voltage_power_supply = bat_voltage;
   //Serial.println(driver.voltage_power_supply);
   if (bat_voltage < min_voltage && !battery_low)
   {
@@ -821,28 +840,42 @@ void OnSecond()
         //battery_low = 0;
       } else {  //电池电压低闪灯
         if (millis() % 500 < 250)
-          digitalWrite(ACTIVE_PIN, 1);
-        else
           digitalWrite(ACTIVE_PIN, 0);
+        else
+          digitalWrite(ACTIVE_PIN, 1);
       }
     }
   }
 #endif
 
-  for (byte i = 0; i < 3; i++) {
+  for (byte i = 0; i < 4; i++) {
     if (touchDetected[i] > 0) { //检测到触摸中，一秒计数一次，未触摸则清零
       touch_touching_time[i]++;
       //长按事件处理
-      if (touch_touching_time[1] % 2 == 0) { //按住大于2秒关灯或者开灯
+      if (touch_touching_time[i] % 2 == 0) { //按住大于2秒
         switch (i) {
           case 0:
 
             break;
           case 1:
             touch_STATE[i] = !touch_STATE[i]; //灯光状态反处理
+            Serial.println("LIGHTS_ON/OFF");
             break;
-          case 2:
-
+          case 3:
+            digitalWrite(ACTIVE_PIN, 1);
+            delay(500);
+            if(touch_STATE[i]==1){
+              ESP32Server.close();//关闭网络服务
+              WiFi.disconnect();
+              WiFi.mode(WIFI_OFF);
+              Serial.println("WIFI_OFF");
+            }else{
+              AutoWifiConfig();
+              StartWebServer();
+              Serial.println("WIFI_ON");
+            }
+            touch_STATE[i] = !touch_STATE[i]; //状态反处理
+            
             break;
         }
       }
@@ -864,6 +897,7 @@ void OnTenthSecond()  // 100ms 十分之一秒
       //Serial.println(rgb_brightness);
       FastLED.setBrightness(rgb_brightness);
     }
+    
   }
 
   if (TenthSecondsSinceStart % 10 == 0) //10次为1秒
@@ -902,8 +936,6 @@ String ProcessUpdate()    //页面更新
   ReturnString += ",";
   ReturnString += test_flag;
   ReturnString += ",";
-  ReturnString += bat_voltage;
-  ReturnString += ",";
   ReturnString += EEPROM.readFloat(0);
   ReturnString += ",";
   ReturnString += swing_up_voltage;
@@ -917,6 +949,8 @@ String ProcessUpdate()    //页面更新
   ReturnString += v_i_2;
   ReturnString += ",";
   ReturnString += v_p_2;
+  ReturnString += ",";
+  ReturnString += bat_voltage;
 
   if (log_control) {
     ReturnString += ",";
@@ -936,7 +970,7 @@ String ProcessUpdate()    //页面更新
     ReturnString += ",";
     ReturnString += gyroZangle;
   } else {
-    ReturnString += ",,,,,,,,";
+    ReturnString += "0,0,0,0,0,0,0,0,0";
   }
 
   ReturnString += ",";
@@ -1237,6 +1271,7 @@ double return_voltage_value(int pin_no)
   double tmp;
   double ADCVoltage;
   double inputVoltage;
+  analogSetPinAttenuation(pin_no, ADC_6db);
 
   for (int i = 0; i < 20; i++)
   {
@@ -1248,6 +1283,17 @@ double return_voltage_value(int pin_no)
   inputVoltage = tmp / 20;
   if(inputVoltage!=0)
     inputVoltage = inputVoltage + 0.001;
+/*
+
+  for (int i = 0; i < 20; i++)
+  {
+    tmp = tmp + analogRead(pin_no);
+  }
+  tmp = tmp / 20;
+
+  ADCVoltage = ((tmp * 3.3) / 4095.0) + 0.165;
+  inputVoltage = ADCVoltage / (R2_VOLTAGE / (R1_VOLTAGE + R2_VOLTAGE)); // formula for calculating voltage in i.e. GND
+*/
 
   return inputVoltage;
 }
