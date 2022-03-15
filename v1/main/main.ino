@@ -24,7 +24,7 @@ double gyroX, gyroY, gyroZ;
 int16_t tempRaw;
 bool stable = 0;
 uint32_t last_unstable_time;
-
+uint32_t last_stable_time;
 double gyroZangle; // Angle calculate using the gyro only
 double compAngleZ; // Calculated angle using a complementary filter
 double kalAngleZ;  // Calculated angle using a Kalman filter
