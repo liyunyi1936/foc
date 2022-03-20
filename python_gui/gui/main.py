@@ -321,6 +321,7 @@ class ControlPlotPanel(QtWidgets.QWidget):
             self.MotorEnableButton.setText('Disable')
             self.controlledPlot.udp.send_message("MOTOR")
 if __name__ == '__main__':
+    QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
     app = QApplication(sys.argv)
     myWin = MyWindow()
     myWin.show()

@@ -752,6 +752,7 @@ void long_event(int touchID)
         Serial.println("WIFI_ON");
        }
        wifi_on_off = !wifi_on_off;
+       Motor_enable_flag = !Motor_enable_flag;
        break; 
   }  
 }
