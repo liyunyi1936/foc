@@ -54,34 +54,34 @@ void colorWipe_delay(uint32_t c, uint8_t wait) {
   }
 }
 void strip1() {
-  pixelInterval = 100;
-  for(int i = 0; i < pixelNumber; i++) {
-    if(pixelCycle == i)
-        strip.setPixelColor(i, strip.Color( 0,191,255)); //  Set pixel's color (in RAM)
-    else if((pixelNumber-pixelCycle+7)%pixelNumber == i)
-        strip.setPixelColor(i, strip.Color(255,165,0));
-    else if((pixelCycle+14)%pixelNumber == i)
-        strip.setPixelColor(i, strip.Color(255,0,255));
-    else 
-        strip.setPixelColor(i, strip.Color(0, 0, 0));
-  }
-  strip.show();                             //  Update strip to match
-  pixelCycle++;
-  if(pixelCycle>=pixelNumber)
-      pixelCycle = 0;
-}
-void strip2() {
+  pixelInterval = 100;   
   int i = 0;
-  pixelInterval = 100;
   strip.fill(strip.Color(0, 0, 0));
   for(i;i<5;i++)
   {
-    int j =i%7*(150/5)+1;
-    strip.setPixelColor((i+pixelCycle)%pixelNumber, strip.Color(0,0,j)); 
-    strip.setPixelColor((i+pixelCycle+7)%pixelNumber, strip.Color(j,0,0)); 
-    strip.setPixelColor((i+pixelCycle+14)%pixelNumber, strip.Color(0,j,0)); 
+      strip.setPixelColor((i+pixelNumber-pixelCycle)%pixelNumber, Wheel((i*10 + pixelQueue) & 255)); 
+      strip.setPixelColor((i+pixelNumber-pixelCycle+11)%pixelNumber, Wheel((i*10 + pixelQueue+128) & 255)); 
   }
+  strip.show();
+  pixelCycle++;
+  if(pixelCycle>=pixelNumber)
+      pixelCycle = 0;
+  pixelQueue++;                             //  Advance current cycle
+  if(pixelQueue >= 256)
+    pixelQueue = 0;                         //  Loop the cycle back to the begining
+    
+}
+void strip2() {
+  int i = 0;
+  strip.fill(strip.Color(0, 0, 0));
+  for(i;i<5;i++)
+  {
+
+      int j =(4-i)%7*(150/5)+1;
       
+      strip.setPixelColor((i+pixelNumber-pixelCycle)%pixelNumber, strip.Color(j,j,j)); 
+      strip.setPixelColor((i+pixelNumber-pixelCycle+11)%pixelNumber, strip.Color(j,j,j)); 
+  }
   strip.show();
   pixelCycle++;
   if(pixelCycle>=pixelNumber)
@@ -89,7 +89,6 @@ void strip2() {
 }
 void strip3() {
   int i = 0;
-  pixelInterval = 100;
   strip.fill(strip.Color(0, 0, 0));
   for(i;i<5;i++)
   {

@@ -364,21 +364,35 @@ void loop() {
       rgb_off();
       break;
     case 1 :
-      strip1();  
+      if(motor.shaft_velocity>0)
+      {
+        pixelInterval = 150 - motor.shaft_velocity;
+        strip2();
+      }
+      else
+      {
+        pixelInterval = 150 + motor.shaft_velocity;
+        strip3();  
+      }
       break;
     case 2 :
+      pixelInterval = 100;
       strip2();
       break;
     case 3 :
+      pixelInterval = 100;
       strip3();  
       break;
     case 4 :
-      rainbow1();  
+      strip1();
       break;
     case 5 :
-      rainbow2();  
+      rainbow1();  
       break;
     case 6 :
+      rainbow2();  
+      break;
+    case 7 :
       pulse_rainbow1();  
       break;
   }
@@ -415,7 +429,7 @@ if(test_flag == 0)//正常控制
 {
   if (abs(pendulum_angle) < swing_up_angle) // if angle small enough stabilize 0.5~30°,1.5~90°
   {
-     target_velocity = controllerLQR(pendulum_angle, gyroZrate, motor.shaftVelocity());
+     target_velocity = controllerLQR(pendulum_angle, gyroZrate, motor.shaft_velocity);
     if (abs(target_velocity) > 120)
         target_velocity = _sign(target_velocity) * 120;
         

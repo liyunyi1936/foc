@@ -8,7 +8,7 @@ int touch_touched[3] = {0,0,0};   //单击,长按判断  单击值为1，长按�
 bool touch_STATE[3] = {1, 1, 1}; // 定义按键触发对象状态变量初始值为true默认开启 T2 T3 T4
 
 int rgb_flag = 1;
-int rgb_modle = 7;//有几种RGB效果就写几
+int rgb_modle = 8;//有几种RGB效果就写几
 //触摸感应处理
 void touchAttach(int touchID, uint8_t touchPin) {
   int touchread = touchRead(touchPin);

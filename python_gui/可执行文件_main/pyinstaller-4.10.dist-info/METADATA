@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: pyinstaller
-Version: 4.7
+Version: 4.10
 Summary: PyInstaller bundles a Python application and all its dependencies into a single package.
 Home-page: http://www.pyinstaller.org/
 Author: Hartmut Goebel, Giovanni Bajo, David Vierra, David Cortesi, Martin Zibricky
@@ -40,6 +40,7 @@ Classifier: Topic :: System :: Software Distribution
 Classifier: Topic :: Utilities
 Requires-Python: <3.11,>=3.6
 Description-Content-Type: text/x-rst
+License-File: COPYING.txt
 Requires-Dist: setuptools
 Requires-Dist: altgraph
 Requires-Dist: pyinstaller-hooks-contrib (>=2020.6)
@@ -61,7 +62,7 @@ PyInstaller bundles a Python application and all its dependencies into a single
 package. The user can run the packaged app without installing a Python
 interpreter or any modules.
 
-:Documentation: https://pyinstaller.readthedocs.io/
+:Documentation: https://pyinstaller.readthedocs.io/en/v4.10
 :Website:       http://www.pyinstaller.org/
 :Code:          https://github.com/pyinstaller/pyinstaller
 
@@ -120,7 +121,7 @@ Requirements and Tested Platforms
 
  - Support for Python installed from the Windows store without using virtual
    environments requires PyInstaller 4.4 or later.
-
+    
 - GNU/Linux (32bit/64bit)
 
  - ldd: Console application to print the shared libraries required
@@ -175,14 +176,14 @@ enhancements on these are welcome.
 Before using any contributed platform, you need to build the PyInstaller
 bootloader, as we do not ship binary packages. Download PyInstaller
 source, and build the bootloader::
-
+     
         cd bootloader
         python ./waf all
 
 Then install PyInstaller::
 
         python setup.py install
-
+        
 or simply use it directly from the source (pyinstaller.py).
 
 
@@ -201,7 +202,7 @@ in the `Changelog`_ section of the manual.
 
 
 .. _tinyaes: https://github.com/naufraghi/tinyaes-py
-.. _`manual`: https://pyinstaller.readthedocs.io/en/v4.7/
-.. _`Changelog`: https://pyinstaller.readthedocs.io/en/v4.7/CHANGES.html
+.. _`manual`: https://pyinstaller.readthedocs.io/en/v4.10/
+.. _`Changelog`: https://pyinstaller.readthedocs.io/en/v4.10/CHANGES.html
 
 
